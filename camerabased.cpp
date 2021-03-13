@@ -152,6 +152,8 @@ void CameraBased::retrieveImages(){
             formatConverter.Convert(pylonImageRight, pylonResultRight);
             cv::Mat imgLeft(pylonImageLeft.GetHeight(), pylonImageLeft.GetWidth(), CV_8UC3, (uint8_t*)pylonImageLeft.GetBuffer());
             cv::Mat imgRight(pylonImageRight.GetHeight(), pylonImageRight.GetWidth(), CV_8UC3, (uint8_t*)pylonImageRight.GetBuffer());
+            //Rotate right camera for correct orientation
+            cv::rotate(imgRight, imgRight, cv::ROTATE_180);
             cout << "after convert in catch " << timer.elapsed() << "ms" << endl;
 
             //display images
