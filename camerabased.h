@@ -7,6 +7,7 @@
 #include <opencv2/opencv.hpp>
 #include <pylon/PylonIncludes.h>
 #include <thread>
+#include <future>
 
 #include "helperfunctions.h"
 
@@ -34,6 +35,15 @@ private slots:
     void saveImages(cv::Mat, cv::Mat);
 
     void initPylon();
+
+    //parallel
+    void saveLeft(cv::Mat);
+    void saveRight(cv::Mat);
+    void displayImageLeft(cv::Mat);
+    void displayImageRight(cv::Mat);
+    void formatImages(cv::Mat&, cv::Mat&);
+    cv::Mat formatLeft();
+    cv::Mat formatRight();
 
 private:
     //UI
@@ -70,6 +80,10 @@ private:
 
     QElapsedTimer overallTimer;
     double executionCounter = 0;
+    int convertTimeOverall = 0;
+    int displayTimeOverall = 0;
+    int saveTimeOverall = 0;
+    int completeTimeOverall = 0;
 
 signals:
     void displayNext();

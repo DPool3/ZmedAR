@@ -80,8 +80,22 @@ void CameraBased::on_startStopRecording_clicked()
         std::cout << "update has been executed " << executionCounter << " times in " << seconds << "seconds." << endl;
         std::cout << "This equals to " << fpsPerSecond << " frames per second." << endl;
 
+        double convertTimeAverage = convertTimeOverall/executionCounter;
+        double displayTimeAverage = displayTimeOverall/executionCounter;
+        double saveTimeAverage = saveTimeOverall/executionCounter;
+        double completeTimeAverage = completeTimeOverall/executionCounter;
+
+        std::cout << "average convert time was " << convertTimeAverage << " ms" << endl;
+        std::cout << "average display time was " << displayTimeAverage << " ms" << endl;
+        std::cout << "average save time was " << saveTimeAverage << " ms" << endl;
+        std::cout << "average complete time was " << completeTimeAverage << " ms" << endl;
+
         //reset variables for framerate calculation
         executionCounter = 0;
+        convertTimeOverall = 0;
+        displayTimeOverall = 0;
+        saveTimeOverall = 0;
+        completeTimeOverall = 0;
 
         //enable checkboxes
         ui->showVideosCheckBox->setEnabled(true);
@@ -147,22 +161,16 @@ void CameraBased::retrieveImages(){
         cameras[1].RetrieveResult(15, pylonResultRight, TimeoutHandling_ThrowException);
 
         if(cameras.IsGrabbing() && pylonResultLeft->GrabSucceeded() && pylonResultRight->GrabSucceeded()){
-            //convert pylonimage to opencv mat
-            formatConverter.Convert(pylonImageLeft, pylonResultLeft);
-            formatConverter.Convert(pylonImageRight, pylonResultRight);
-            cv::Mat imgLeft(pylonImageLeft.GetHeight(), pylonImageLeft.GetWidth(), CV_8UC3, (uint8_t*)pylonImageLeft.GetBuffer());
-            cv::Mat imgRight(pylonImageRight.GetHeight(), pylonImageRight.GetWidth(), CV_8UC3, (uint8_t*)pylonImageRight.GetBuffer());
-            //Rotate right camera for correct orientation
-            cv::rotate(imgRight, imgRight, cv::ROTATE_180);
-            cout << "after convert in catch " << timer.elapsed() << "ms" << endl;
+            cv::Mat imgLeft, imgRight;
+
+            //convert images
+            formatImages(imgLeft, imgRight);
 
             //display images
             displayImages(imgLeft, imgRight);
-            if(showVideo)cout << "after display in catch " << timer.elapsed() << "ms" << endl;
 
             //save images
             saveImages(imgLeft, imgRight);
-            if(saveVideo)cout << "after save in catch " << timer.elapsed() << "ms" << endl;
         }
     }
     catch (const GenericException &e)
@@ -173,19 +181,43 @@ void CameraBased::retrieveImages(){
         cout << "after update in catch " << timer.elapsed() << "ms" << endl <<
                 "-------------------------------------------------" << endl;
     }
-    cout << "-------------------------------------------------" << endl;
+    cout << "complete run of retrieve takes " << timer.elapsed() << "ms" << endl <<
+            "-------------------------------------------------" << endl;
+    completeTimeOverall += timer.elapsed();
     executionCounter++;
+}
+
+void CameraBased::formatImages(cv::Mat& imgLeft, cv::Mat& imgRight){
+    QElapsedTimer timer;
+    timer.start();
+    std::thread leftT([&] {imgLeft = formatLeft();});
+    std::thread rightT([&] {imgRight = formatRight();});
+    leftT.join();
+    rightT.join();
+    cout << "time for format " << timer.elapsed() << "ms" << endl;
+    convertTimeOverall += timer.elapsed();;
+}
+
+cv::Mat CameraBased::formatLeft(){
+    formatConverter.Convert(pylonImageLeft, pylonResultLeft);
+    cv::Mat imgLeft(pylonImageLeft.GetHeight(), pylonImageLeft.GetWidth(), CV_8UC3, (uint8_t*)pylonImageLeft.GetBuffer());
+    return imgLeft;
+}
+
+cv::Mat CameraBased::formatRight(){
+    formatConverter.Convert(pylonImageRight, pylonResultRight);
+    cv::Mat imgRight(pylonImageRight.GetHeight(), pylonImageRight.GetWidth(), CV_8UC3, (uint8_t*)pylonImageRight.GetBuffer());
+    cv::rotate(imgRight, imgRight, cv::ROTATE_180);
+    return imgRight;
 }
 
 void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
     if(this->showVideo){
+        QElapsedTimer timer;
+        timer.start();
         //Resize Images
         cv::resize(imgLeft, imgLeft, cv::Size(480, 320), 0, 0);
         cv::resize(imgRight, imgRight, cv::Size(480, 320), 0, 0);
-
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
-        cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
 
         //Convert to QImage
         QImage qimgLeft((const unsigned char*) imgLeft.data, imgLeft.cols, imgLeft.rows, QImage::Format_RGB888);
@@ -198,13 +230,65 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
         //Resize the label to fit the image
         ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());
         ui->videoLabelRight->resize(ui->videoLabelRight->pixmap()->size());
+
+        std::cout << "time for displaying " << timer.elapsed() << " ms" << endl;
+        displayTimeOverall += timer.elapsed();
     }
 }
 
-void CameraBased::saveImages(cv::Mat imgLeft, cv::Mat imgRights){
+void CameraBased::saveImages(cv::Mat imgLeft, cv::Mat imgRight){
     if(this->saveVideo){
-        //write frame into file
-        writerLeft.write(imgLeft);
-        writerRight.write(imgRights);
+        QElapsedTimer timer;
+        timer.start();
+        std::thread saveLeftThread(&CameraBased::saveLeft, this, imgLeft);
+        std::thread saveRightThread(&CameraBased::saveRight, this, imgRight);
+        saveLeftThread.join();
+        saveRightThread.join();
+        std::cout << "time for saving " << timer.elapsed() << " ms" << endl;
+        saveTimeOverall += timer.elapsed();
     }
+}
+
+void CameraBased::saveLeft(cv::Mat imgLeft){
+    cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
+    writerLeft.write(imgLeft);
+}
+
+void CameraBased::saveRight(cv::Mat imgRight){
+    cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
+    writerRight.write(imgRight);
+}
+
+void CameraBased::displayImageLeft(cv::Mat imgLeft){
+    //Resize Images
+    cv::resize(imgLeft, imgLeft, cv::Size(480, 320), 0, 0);
+
+    //Change to RGB format & save it in global Mat
+    cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
+
+    //Convert to QImage
+    QImage qimgLeft((const unsigned char*) imgLeft.data, imgLeft.cols, imgLeft.rows, QImage::Format_RGB888);
+
+    //Display on Input Label
+    ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qimgLeft));
+
+    //Resize the label to fit the image
+    ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());
+}
+
+void CameraBased::displayImageRight(cv::Mat imgRight){
+    //Resize Images
+    cv::resize(imgRight, imgRight, cv::Size(480, 320), 0, 0);
+
+    //Change to RGB format & save it in global Mat
+    cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
+
+    //Convert to QImage
+    QImage qimgRight((const unsigned char*) imgRight.data, imgRight.cols, imgRight.rows, QImage::Format_RGB888);
+
+    //Display on Input Label
+    ui->videoLabelRight->setPixmap(QPixmap::fromImage(qimgRight));
+
+    //Resize the label to fit the image
+    ui->videoLabelRight->resize(ui->videoLabelRight->pixmap()->size());
 }
