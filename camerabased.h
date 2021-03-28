@@ -5,13 +5,13 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <opencv2/opencv.hpp>
-#include <pylon/PylonIncludes.h>
 #include <thread>
 #include <future>
 
 #include "helperfunctions.h"
+#include "PylonCamera.h"
 
-using namespace Pylon;
+using namespace std;
 
 namespace Ui {
 class CameraBased;
@@ -33,37 +33,23 @@ private slots:
     void retrieveImages();
     void displayImages(cv::Mat, cv::Mat);
     void saveImages(cv::Mat, cv::Mat);
-
-    void initPylon();
+    void saveImagesWithPylon();
 
     //parallel
+    void saveImagesThread();
     void saveLeft(cv::Mat);
     void saveRight(cv::Mat);
-    void displayImageLeft(cv::Mat);
-    void displayImageRight(cv::Mat);
-    void formatImages(cv::Mat&, cv::Mat&);
-    cv::Mat formatLeft();
-    cv::Mat formatRight();
 
 private:
     //UI
     Ui::CameraBased *ui;
 
     //Pylon
-    CInstantCameraArray cameras;
-
-    CImageFormatConverter formatConverter;
-
-    CPylonImage pylonImageLeft;
-    CPylonImage pylonImageRight;
-
-    CGrabResultPtr pylonResultLeft;
-    CGrabResultPtr pylonResultRight;
-
-    std::size_t c_maxCamerasToUse = 2;
+    pylonCamera cameras;
 
     //Opencv
     QTimer *retrieveImagesTimer;
+    QTimer *saveImageTimer;
 
     cv::VideoCapture captureLeft;
     cv::VideoCapture captureRight;
@@ -80,7 +66,7 @@ private:
 
     QElapsedTimer overallTimer;
     double executionCounter = 0;
-    int convertTimeOverall = 0;
+    double saveExecutionCounter = 0;
     int displayTimeOverall = 0;
     int saveTimeOverall = 0;
     int completeTimeOverall = 0;

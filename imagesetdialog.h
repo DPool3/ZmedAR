@@ -4,13 +4,13 @@
 #include <QDialog>
 #include <QTimer>
 #include <opencv2/opencv.hpp>
-#include <pylon/PylonIncludes.h>
 
+#include "PylonCamera.h"
 #include "helperfunctions.h"
 #include "mainsettings.h"
 #include "imageset.h"
 
-using namespace Pylon;
+using namespace std;
 
 namespace Ui {
 class ImageSetDialog;
@@ -41,23 +41,11 @@ private slots:
     void update();
     void counter();
 
-    void initPylon();
-
 private:
     Ui::ImageSetDialog *ui;
 
     //Pylon
-    CInstantCameraArray cameras;
-
-    CImageFormatConverter formatConverter;
-
-    CPylonImage pylonImageLeft;
-    CPylonImage pylonImageRight;
-
-    CGrabResultPtr pylonResultLeft;
-    CGrabResultPtr pylonResultRight;
-
-    std::size_t c_maxCamerasToUse = 2;
+    pylonCamera cameras;
 
     //Image Set
     ImageSet imageSet;
@@ -67,9 +55,6 @@ private:
 
     bool showVideo = false;
     bool setImageSetDefault = false;
-
-    cv::VideoCapture captureLeft;
-    cv::VideoCapture captureRight;
 
     cv::Mat imageLeft;
     cv::Mat imageRight;

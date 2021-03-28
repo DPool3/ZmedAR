@@ -25,6 +25,7 @@ public:
 
     //Get Methods
     std::string getVideoSavePath();
+    void getCompleteVideoSavePath(std::string&, std::string&);
     std::string getCurrentSelectedImageSetPath();
     std::string getCurrentDateAsString();
     int getFpsFromMainSettings();

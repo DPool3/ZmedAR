@@ -41,15 +41,26 @@ int HelperFunctions::createVideoWriter(cv::VideoWriter &witerLeft,
 
     //Create the VideoWriter object.
     //Error messages can be ignored. Videos are still saved successfully.
-    int fps = settings.getFps();
-    cv::VideoWriter videoLeft(leftSavePath, codec, fps, cv::Size(1920, 1200));
-    cv::VideoWriter videoRight(rightSavePath, codec, fps, cv::Size(1920, 1200));
+    //int fps = settings.getFps();
+    cv::VideoWriter videoLeft(leftSavePath, codec, 11, cv::Size(1920, 1200));
+    cv::VideoWriter videoRight(rightSavePath, codec, 11, cv::Size(1920, 1200));
 
     //copy to referenced objects. Otherwise it causes an error.
     witerLeft = videoLeft;
     wirterRight = videoRight;
 
     return 0;
+}
+
+void HelperFunctions::getCompleteVideoSavePath(std::string &leftSavePath, std::string &rightSavePath){
+    //Create paths to save videos
+    std::string fileName = settings.getFileName();
+    std::string fileType = settings.getFileType();
+
+    std::string savePath = getVideoSavePath();
+    leftSavePath = savePath + "/" + fileName + "_Links" + fileType;
+    rightSavePath = savePath + "/" + fileName + "_Rechts" + fileType;
+    return;
 }
 
 //Get Methods

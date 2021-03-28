@@ -1,27 +1,11 @@
 #include "imagesetdialog.h"
 #include "ui_imagesetdialog.h"
-using namespace Pylon;
-using namespace std;
 
 ImageSetDialog::ImageSetDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ImageSetDialog)
 {
     ui->setupUi(this);
-
-    PylonInitialize();
-
-    try{
-        initPylon();
-    }
-    catch (const GenericException &e)
-    {
-        // Error handling
-        string text = "An exception occurred during initialization of the cameras.\n" + (string)e.GetDescription();
-        HelperFunctions().callErrorDialog(text);
-        this->close();
-    }
-    //HelperFunctions().setVideoCapture(this->captureLeft, this->captureRight);
 
     //Set frames per second in ms
     const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
@@ -39,7 +23,7 @@ ImageSetDialog::ImageSetDialog(QWidget *parent) :
 
 ImageSetDialog::~ImageSetDialog()
 {
-    cameras.StopGrabbing();
+    cameras.stopGrabbing();
     delete ui;
 }
 
@@ -68,13 +52,13 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
         saveInputInImageSet();
 
         try{
-            //start grabbing images from cameras
-            cameras.StartGrabbing(GrabStrategy_LatestImageOnly, GrabLoop_ProvidedByUser);
+            cameras.initCameras();
+            cameras.startGrabbing();
         }
         catch (const GenericException &e)
         {
             // Error handling
-            string text = "An exception occurred while starting camera grab.\n" + (string)e.GetDescription();
+            string text = "An exception occurred during initialization of the cameras.\n" + (string)e.GetDescription();
             HelperFunctions().callErrorDialog(text);
             this->close();
         }
@@ -95,44 +79,10 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
             counterTimer->stop();
             updateTimer->stop();
             enableUI(true);
-            cameras.StopGrabbing();
+            cameras.stopGrabbing();
             ui->imageSetRecord_button->setText("Aufnahme starten");
         }
     }
-}
-
-void ImageSetDialog::initPylon(){
-    // Get the transport layer factory.
-    CTlFactory& tlFactory = CTlFactory::GetInstance();
-
-    // Get all attached devices and exit application if no device is found.
-    DeviceInfoList_t devices;
-
-    if(tlFactory.EnumerateDevices(devices) < 2){
-        throw RUNTIME_EXCEPTION("Less than two camera found");
-    }
-
-    //set converter parameters
-    formatConverter.OutputPixelFormat = PixelType_RGB8packed;
-    formatConverter.OutputBitAlignment = OutputBitAlignment_MsbAligned;
-
-    cameras.Initialize(c_maxCamerasToUse);
-    cout << "Number necessary cameras " << cameras.GetSize() << endl;
-    cout << "Number devices found " << devices.size() << endl;
-
-    // Create and attach all Pylon Devices.
-    for ( size_t i = 0; i < cameras.GetSize(); ++i)
-    {
-        cout << "checking device at " << i << "." << endl;
-        IPylonDevice *device = tlFactory.CreateDevice(devices[i]);
-        cameras[i].Attach(device);
-        // Print the model name of the camera.
-        cout << "Using device "
-             << cameras[i].GetDeviceInfo().GetModelName() << " | "
-             << cameras[i].GetDeviceInfo().GetDeviceID() << endl;
-    }
-
-    cameras.Open();
 }
 
 void ImageSetDialog::saveInputInImageSet(){
@@ -167,29 +117,8 @@ void ImageSetDialog::enableUI(bool value){
 }
 
 void ImageSetDialog::update(){
-    try{
-        cameras[0].RetrieveResult(1, pylonResultLeft, TimeoutHandling_ThrowException);
-        cameras[1].RetrieveResult(1, pylonResultRight, TimeoutHandling_ThrowException);
-
-        if(cameras.IsGrabbing() && pylonResultLeft->GrabSucceeded() && pylonResultRight->GrabSucceeded()){
-            //convert pylonimage to opencv mat
-            formatConverter.Convert(pylonImageLeft, pylonResultLeft);
-            formatConverter.Convert(pylonImageRight, pylonResultRight);
-            cv::Mat imgLeft(pylonImageLeft.GetHeight(), pylonImageLeft.GetWidth(), CV_8UC3, (uint8_t*)pylonImageLeft.GetBuffer());
-            cv::Mat imgRight(pylonImageRight.GetHeight(), pylonImageRight.GetWidth(), CV_8UC3, (uint8_t*)pylonImageRight.GetBuffer());
-
-            imageLeft = imgLeft;
-            imageRight = imgRight;
-
-            //display images
-            displayImages(imgLeft, imgRight);
-        }
-    }
-    catch (const GenericException &e)
-    {
-        // Error handling
-        cerr << "An exception occurred in update." << endl
-        << e.GetDescription() << endl;
+    if(cameras.grabImages(this->imageLeft, this->imageRight)){
+        displayImages(this->imageLeft, this->imageRight);
     }
 }
 
@@ -198,10 +127,6 @@ void ImageSetDialog::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
         //Resize Images
         cv::resize(imageLeft, imageLeft, cv::Size(480, 320), 0, 0);
         cv::resize(imageRight, imageRight, cv::Size(480, 320), 0, 0);
-
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(imageLeft, imageLeft, CV_BGR2RGB);
-        cv::cvtColor(imageRight, imageRight, CV_BGR2RGB);
 
         //Convert to QImage
         QImage qimgLeft((const unsigned char*) imageLeft.data, imageLeft.cols, imageLeft.rows, QImage::Format_RGB888);

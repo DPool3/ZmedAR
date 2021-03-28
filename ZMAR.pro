@@ -36,7 +36,8 @@ SOURCES += \
     camerabased.cpp \
     imageset.cpp \
     imagesetdialog.cpp \
-    filesystem.cpp
+    filesystem.cpp \
+    PylonCamera.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -48,7 +49,8 @@ HEADERS += \
     camerabased.h \
     imageset.h \
     imagesetdialog.h \
-    filesystem.h
+    filesystem.h \
+    PylonCamera.h
 
 FORMS += \
         mainwindow.ui \
@@ -60,7 +62,9 @@ FORMS += \
     filesystem.ui
 
 INCLUDEPATH += /usr/local/include/opencv2
-INCLUDEPATH += /opt/pylon/include
+INCLUDEPATH += /opt/pylon5/include
 
 LIBS += $(shell pkg-config opencv --libs)
-LIBS += -L/opt/pylon/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lpylonc
+LIBS += -L/opt/pylon5/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lpylonc \
+        -lNodeMapData_gcc_v3_1_Basler_pylon
+LIBS += -L/opt/pylon5/lib64 -lavcodec -lavformat -lavresample -lavutil
