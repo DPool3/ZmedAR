@@ -8,11 +8,11 @@ VideoBased::VideoBased(QWidget *parent) :
     ui->setupUi(this);
 
     //Set frames per second in ms
-    const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
+    //const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
 
     //set update timer
     this->updateTimer = new QTimer(this);
-    this->updateTimer->setInterval(fps);
+    this->updateTimer->setInterval(1000/11);
     connect(this->updateTimer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
