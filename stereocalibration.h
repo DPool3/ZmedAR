@@ -7,9 +7,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
+#include <QTextStream>
 #include <string>
 #include "helperfunctions.h"
 #include "imageset.h"
+
+using namespace std;
 
 namespace Ui {
 class StereoCalibration;
@@ -27,34 +30,40 @@ private slots:
 
     void on_startCalibration_button_clicked();
     void on_searchFile_button_clicked();
-    void displayImages(cv::Mat, cv::Mat);
-    void displayImageRight(cv::Mat);
-    void displayImageLeft(cv::Mat);
-
-    void on_displayImages_checkbox_toggled(bool checked);
+    void on_displayImages_checkbox_toggled(bool);
+    void on_resizeFactorSpinBox_valueChanged(double);
 
 private:
     Ui::StereoCalibration *ui;
 
     ImageSet imageSet;
 
-    //Actual 3D coordinate of those checkerboard points
-    std::vector< std::vector< cv::Point3f > > object_points;
-    //Checkerboard corner coordinates in the image
-    std::vector< std::vector< cv::Point2f > > imagePointsL, imagePointsR;
-    std::vector< cv::Point2f > cornersL, cornersR;
-
+    //Variables to store images while finding corners in pattern images
     cv::Mat imgL, imgR, grayL, grayR;
 
+    //check for displaying images in ui
     bool showImages = true;
+    double resizeFactor = 1;
 
     //methods
     void loadImageSet();
     void setImageSetDataInUi();
+    void displayImages(cv::Mat, cv::Mat);
     std::string splitFileName(const std::string&);
 
     void performSteroCalibration();
-    void loadImgPoints(int, int, int, float, std::string, std::string, std::string);
+    void loadImgPoints(int, int, int,
+                       float,
+                       std::string, std::string, std::string,
+                       std::vector< std::vector< cv::Point3f > >&,
+                       std::vector< std::vector< cv::Point2f > >&, std::vector< std::vector< cv::Point2f > >&);
+    void findChessBoardCorners(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);
+    void findCircleGridSym(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);
+    void findCircleGridAsym(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);
+
+    void lockUi();
+    void releaseUi();
+
 };
 
 #endif // STEREOCALIBRATION_H
