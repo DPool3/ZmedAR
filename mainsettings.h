@@ -26,6 +26,8 @@ public:
     //frames per second
     void setFps(int);
     int getFps();
+    void setSaveFps(int);
+    int getSaveFps();
 
     //File name get & set
     bool setFileName(std::string);
@@ -56,7 +58,8 @@ private:
     std::string videosPath = "/home/daniel/ZAR/Videos";
     std::string rootPath = "/home/daniel/ZAR";
     cv::Size framesize = cv::Size(1920,1200);
-    int fps = 30;
+    int fps = 75;
+    int saveFps = 30;
 
     std::string fileName = "video";
     std::string fileType = ".mp4";

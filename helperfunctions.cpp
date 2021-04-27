@@ -41,9 +41,9 @@ int HelperFunctions::createVideoWriter(cv::VideoWriter &witerLeft,
 
     //Create the VideoWriter object.
     //Error messages can be ignored. Videos are still saved successfully.
-    //int fps = settings.getFps();
-    cv::VideoWriter videoLeft(leftSavePath, codec, 11, cv::Size(1920, 1200));
-    cv::VideoWriter videoRight(rightSavePath, codec, 11, cv::Size(1920, 1200));
+    int savefps = settings.getSaveFps();
+    cv::VideoWriter videoLeft(leftSavePath, codec, savefps, cv::Size(1920, 1200));
+    cv::VideoWriter videoRight(rightSavePath, codec, savefps, cv::Size(1920, 1200));
 
     //copy to referenced objects. Otherwise it causes an error.
     witerLeft = videoLeft;
@@ -164,4 +164,8 @@ QString HelperFunctions::getPathFromFileSystem(){
     fsd.setModal(true);
     fsd.exec();
     return fsd.getSelectedFile();
+}
+
+int HelperFunctions::getSaveFpsFromMainSettings(){
+    return settings.getSaveFps();
 }

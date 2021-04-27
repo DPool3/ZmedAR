@@ -7,16 +7,13 @@ CameraBased::CameraBased(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //Set frames per second in ms
-    const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
-
     //set update timer
     retrieveImagesTimer = new QTimer(this);
-    retrieveImagesTimer->setInterval(fps);
+    retrieveImagesTimer->setInterval(1000/HelperFunctions().getFpsFromMainSettings());
     connect(retrieveImagesTimer, SIGNAL(timeout()), this, SLOT(retrieveImages()));
 
     saveImageTimer = new QTimer(this);
-    saveImageTimer->setInterval(1000/11);
+    saveImageTimer->setInterval(1000/HelperFunctions().getSaveFpsFromMainSettings());
     connect(saveImageTimer, SIGNAL(timeout()), this, SLOT(saveImagesThread()));
 }
 

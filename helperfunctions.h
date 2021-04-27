@@ -29,6 +29,7 @@ public:
     std::string getCurrentSelectedImageSetPath();
     std::string getCurrentDateAsString();
     int getFpsFromMainSettings();
+    int getSaveFpsFromMainSettings();
 
     //Set Methods
     void setCurrentSelectedImageSetPath(std::string);

@@ -30,6 +30,10 @@ int MainSettings::getFps(){
     return fps;
 }
 
+int MainSettings::getSaveFps(){
+    return saveFps;
+}
+
 //setter
 int MainSettings::setImageSetSelectionPath(std::string newPathName)
 {
@@ -66,6 +70,10 @@ int MainSettings::setRootPath(std::string newPathName)
 
 void MainSettings::setFps(int newFps){
     this->fps = newFps;
+}
+
+void MainSettings::setSaveFps(int newSaveFps){
+    this->saveFps = newSaveFps;
 }
 
 //Videos tab
