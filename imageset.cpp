@@ -31,6 +31,17 @@ ImageSet::ImageSet(std::string path)
         fsRead["T"] >> this->T;
         fsRead["E"] >> this->E;
         fsRead["F"] >> this->F;
+        fsRead["Q"] >> this->Q;
+        fsRead["new_CamL"] >> this->new_CamL;
+        fsRead["new_CamR"] >> this->new_CamR;
+        fsRead["rect_l"] >> this->rect_l;
+        fsRead["rect_r"] >> this->rect_r;
+        fsRead["proj_mat_l"] >> this->proj_mat_l;
+        fsRead["proj_mat_r"] >> this->proj_mat_r;
+        fsRead["Left_Stereo_Map1"] >> this->Left_Stereo_Map1;
+        fsRead["Left_Stereo_Map2"] >> this->Left_Stereo_Map2;
+        fsRead["Right_Stereo_Map1"] >> this->Right_Stereo_Map1;
+        fsRead["Right_Stereo_Map2"] >> this->Right_Stereo_Map2;
     }
     else{
         setDefault();
@@ -134,6 +145,61 @@ void ImageSet::setT(cv::Mat newMat){
     updateSettings();
 }
 
+void ImageSet::setQ(cv::Mat newMat){
+    Q = newMat;
+    updateSettings();
+}
+
+void ImageSet::setNewCamL(cv::Mat newMat){
+    new_CamL = newMat;
+    updateSettings();
+}
+
+void ImageSet::setNewCamR(cv::Mat newMat){
+    new_CamR = newMat;
+    updateSettings();
+}
+
+void ImageSet::setRectL(cv::Mat newMat){
+    rect_l = newMat;
+    updateSettings();
+}
+
+void ImageSet::setRectR(cv::Mat newMat){
+    rect_r = newMat;
+    updateSettings();
+}
+
+void ImageSet::setProjMatL(cv::Mat newMat){
+    proj_mat_l = newMat;
+    updateSettings();
+}
+
+void ImageSet::setProjMatR(cv::Mat newMat){
+    proj_mat_r = newMat;
+    updateSettings();
+}
+
+void ImageSet::setLeftStereoMap1(cv::Mat newMat){
+    Left_Stereo_Map1 = newMat;
+    updateSettings();
+}
+
+void ImageSet::setLeftStereoMap2(cv::Mat newMat){
+    Left_Stereo_Map2 = newMat;
+    updateSettings();
+}
+
+void ImageSet::setRightStereoMap1(cv::Mat newMat){
+    Right_Stereo_Map1 = newMat;
+    updateSettings();
+}
+
+void ImageSet::setRightStereoMap2(cv::Mat newMat){
+    Right_Stereo_Map2 = newMat;
+    updateSettings();
+}
+
 //getter
 int ImageSet::getNumberOfImages(){
     return numberOfImages;
@@ -195,6 +261,50 @@ cv::Mat ImageSet::getT(){
     return T;
 }
 
+cv::Mat ImageSet::getQ(){
+    return Q;
+}
+
+cv::Mat ImageSet::getNewCamL(){
+    return new_CamL;
+}
+
+cv::Mat ImageSet::getNewCamR(){
+    return new_CamR;
+}
+
+cv::Mat ImageSet::getRectL(){
+    return rect_l;
+}
+
+cv::Mat ImageSet::getRectR(){
+    return rect_r;
+}
+
+cv::Mat ImageSet::getProjMatL(){
+    return proj_mat_l;
+}
+
+cv::Mat ImageSet::getProjMatR(){
+    return proj_mat_r;
+}
+
+cv::Mat ImageSet::getLeftStereoMap1(){
+    return Left_Stereo_Map1;
+}
+
+cv::Mat ImageSet::getLeftStereoMap2(){
+    return Left_Stereo_Map2;
+}
+
+cv::Mat ImageSet::getRightStereoMap1(){
+    return Right_Stereo_Map1;
+}
+
+cv::Mat ImageSet::getRightStereoMap2(){
+    return Right_Stereo_Map2;
+}
+
 void ImageSet::updateSettings(){
     //Create file path for settings file
     std::string settingsPath = path + "/StereoCalibrationSettings.yml";
@@ -215,6 +325,17 @@ void ImageSet::updateSettings(){
     fsWrite << "T" << this->T;
     fsWrite << "E" << this->E;
     fsWrite << "F" << this->F;
+    fsWrite << "Q" << this->Q;
+    fsWrite << "new_CamL" << this->new_CamL;
+    fsWrite << "new_CamR" << this->new_CamR;
+    fsWrite << "rect_l" << this->rect_l;
+    fsWrite << "rect_r" << this->rect_r;
+    fsWrite << "proj_mat_l" << this->proj_mat_l;
+    fsWrite << "proj_mat_r" << this->proj_mat_r;
+    fsWrite << "Left_Stereo_Map1" << this->Left_Stereo_Map1;
+    fsWrite << "Left_Stereo_Map2" << this->Left_Stereo_Map2;
+    fsWrite << "Right_Stereo_Map1" << this->Right_Stereo_Map1;
+    fsWrite << "Right_Stereo_Map2" << this->Right_Stereo_Map2;
 }
 
 void ImageSet::setDefault(){
@@ -242,4 +363,15 @@ void ImageSet::setDefault(){
     fsWrite << "T" << this->T;
     fsWrite << "E" << this->E;
     fsWrite << "F" << this->F;
+    fsWrite << "Q" << this->Q;
+    fsWrite << "new_CamL" << this->new_CamL;
+    fsWrite << "new_CamR" << this->new_CamR;
+    fsWrite << "rect_l" << this->rect_l;
+    fsWrite << "rect_r" << this->rect_r;
+    fsWrite << "proj_mat_l" << this->proj_mat_l;
+    fsWrite << "proj_mat_r" << this->proj_mat_r;
+    fsWrite << "Left_Stereo_Map1" << this->Left_Stereo_Map1;
+    fsWrite << "Left_Stereo_Map2" << this->Left_Stereo_Map2;
+    fsWrite << "Right_Stereo_Map1" << this->Right_Stereo_Map1;
+    fsWrite << "Right_Stereo_Map2" << this->Right_Stereo_Map2;
 }
