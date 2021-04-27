@@ -31,19 +31,14 @@ void pylonCamera::initCameras(){
         cout << "checking device at " << i << "." << endl;
         IPylonDevice *device = tlFactory.CreateDevice(devices[i]);
         cameras[i].Attach(device);
-        // Print the model name of the camera.
-        cout << "Using device "
-             << cameras[i].GetDeviceInfo().GetModelName() << " | "
-             << cameras[i].GetDeviceInfo().GetDeviceID() << endl;
+        cout << "Using device " << cameras[i].GetDeviceInfo().GetModelName() << endl;
     }
 
-//    GenApi_3_1_Basler_pylon::INodeMap& nodemap = cameras[0].GetNodeMap();
-//    // Enable Reverse X
-//    CBooleanParameter(nodemap, "ReverseX").SetValue(true);
-//    // Enable Reverse Y, if available
-//    CBooleanParameter(nodemap, "ReverseY").SetValue(true);
-
     cameras.Open();
+
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap = cameras[1].GetNodeMap();
+    CBooleanParameter(nodemap, "ReverseX").SetValue(true);
+    CBooleanParameter(nodemap, "ReverseY").SetValue(true);
 }
 
 void pylonCamera::startGrabbing(){
@@ -112,7 +107,6 @@ cv::Mat pylonCamera::imageFormaterLeft(){
 cv::Mat pylonCamera::imageFormaterRight(){
     formatConverter.Convert(pylonImageRight, pylonResultRight);
     cv::Mat imgRight(pylonImageRight.GetHeight(), pylonImageRight.GetWidth(), CV_8UC3, (uint8_t*)pylonImageRight.GetBuffer());
-    cv::rotate(imgRight, imgRight, cv::ROTATE_180);
     return imgRight;
 }
 
