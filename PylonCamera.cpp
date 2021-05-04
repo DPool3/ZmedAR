@@ -18,7 +18,7 @@ void pylonCamera::initCameras(){
     }
 
     //set converter parameters
-    formatConverter.OutputPixelFormat = PixelType_RGB8packed;
+    formatConverter.OutputPixelFormat = PixelType_BGR8packed;
     formatConverter.OutputBitAlignment = OutputBitAlignment_MsbAligned;
 
     cameras.Initialize(c_maxCamerasToUse);

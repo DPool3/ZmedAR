@@ -148,6 +148,10 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
         cv::resize(imgLeft, imgLeft, cv::Size(480, 320), 0, 0);
         cv::resize(imgRight, imgRight, cv::Size(480, 320), 0, 0);
 
+        //Change to RGB format & save it in global Mat
+        cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
+        cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
+
         //Convert to QImage
         QImage qimgLeft((const unsigned char*) imgLeft.data, imgLeft.cols, imgLeft.rows, QImage::Format_RGB888);
         QImage qimgRight((const unsigned char*) imgRight.data, imgRight.cols, imgRight.rows, QImage::Format_RGB888);
