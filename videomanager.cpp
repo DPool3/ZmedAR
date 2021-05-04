@@ -26,14 +26,11 @@ VideoManager::VideoManager()
 void VideoManager::createVideoWriterPair(cv::VideoWriter &writerLeft, cv::VideoWriter &writerRight, std::string directoryNameAddition)
 {
     //create a new directory path with the current video save path, time and date and the directory name addition
-    std::string videoDirectoryName = videoSavePath + "/" + HelperFunctions().getCurrentDateAsString() + directoryNameAddition;
-    DirectoryManager().createStereoDirectory(videoDirectoryName);
+    std::string videoDirectoryName = DirectoryManager().createVideoDirectory(directoryNameAddition);
 
     //create the save paths for both files and call the crateVideoWritermethod
-    std::string leftSavePath = videoDirectoryName + "/Left/" + fileName + "_Links" + fileType;
-    std::string rightSavePath = videoDirectoryName + "/Right/" + fileName + "_Rechts" + fileType;
-    createVideoWriter(writerLeft, leftSavePath);
-    createVideoWriter(writerRight, rightSavePath);
+    createVideoWriter(writerLeft, videoDirectoryName + "/" + fileName + "_Links" + fileType);
+    createVideoWriter(writerRight, videoDirectoryName + "/" + fileName + "_Rechts" + fileType);
 }
 
 void VideoManager::createVideoWriter(cv::VideoWriter & writer, std::string path)

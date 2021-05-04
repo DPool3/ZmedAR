@@ -6,8 +6,8 @@
 #include <opencv2/opencv.hpp>
 
 #include "PylonCamera.h"
-#include "helperfunctions.h"
-#include "mainsettings.h"
+#include "dialogmanager.h"
+#include "videomanager.h"
 #include "imageset.h"
 
 using namespace std;
@@ -36,7 +36,8 @@ private slots:
     std::string getPatternType();
     ImageSet createImageSet();
 
-    void enableUI(bool value);
+    void lockUi();
+    void releaseUi();
 
     void update();
     void counter();

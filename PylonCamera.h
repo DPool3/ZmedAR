@@ -6,8 +6,6 @@
 #include <pylon/PylonIncludes.h>
 #include <thread>
 
-#include "helperfunctions.h"
-
 using namespace Pylon;
 using namespace std;
 
@@ -21,9 +19,9 @@ public:
     void stopGrabbing();
     bool grabImages(cv::Mat&, cv::Mat&);
 
-    void setCreateVideo(bool);
-    int initVideoWriter();
-    void closeVideoWriter();
+//    void setCreateVideo(bool);
+//    int initVideoWriter();
+//    void closeVideoWriter();
 
     double getAverageExecutionTime();
     double getAverageFormatTime();
@@ -36,7 +34,7 @@ private:
     cv::Mat imageFormaterRight();
 
     //video
-    void writeImages();
+//    void writeImages();
 
     //Pylon global variables
     CInstantCameraArray cameras;
@@ -54,8 +52,6 @@ private:
     CVideoWriter videoWriterLeft;
     CVideoWriter videoWriterRight;
 
-    //helper
-    HelperFunctions helper;
     bool createVideo = false;
 
     //calculation variables

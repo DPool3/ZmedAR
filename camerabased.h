@@ -8,7 +8,6 @@
 #include <thread>
 #include <future>
 
-#include "helperfunctions.h"
 #include "videomanager.h"
 #include "PylonCamera.h"
 

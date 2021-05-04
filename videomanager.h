@@ -2,10 +2,11 @@
 #define VIDEOMANAGER_H
 
 #include <opencv2/opencv.hpp>
+#include <thread>
+#include <future>
 
 #include "mainsettings.h"
 #include "directorymanager.h"
-#include "helperfunctions.h"
 
 class VideoManager
 {

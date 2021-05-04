@@ -8,7 +8,7 @@ ImageSetDialog::ImageSetDialog(QWidget *parent) :
     ui->setupUi(this);
 
     //Set frames per second in ms
-    const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
+    const int fps = 1000/VideoManager().fps;
 
     //set update timer
     this->updateTimer = new QTimer(this);
@@ -43,7 +43,7 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
     if(!this->counterTimer->isActive()){
 
         //disable ui
-        enableUI(false);
+        lockUi();
 
         //create new Image set
         this->imageSet = createImageSet();
@@ -57,10 +57,8 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
         }
         catch (const GenericException &e)
         {
-            // Error handling
-            string text = "An exception occurred during initialization of the cameras.\n" + (string)e.GetDescription();
-            HelperFunctions().callErrorDialog(text);
-            this->close();
+            // Error: Fehler während Kamerainitialisierung
+            DialogManager().callErrorDialog(e.what());
         }
 
         //start update timer to display images
@@ -78,7 +76,7 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
         else{
             counterTimer->stop();
             updateTimer->stop();
-            enableUI(true);
+            releaseUi();
             cameras.stopGrabbing();
             ui->imageSetRecord_button->setText("Aufnahme starten");
         }
@@ -103,17 +101,28 @@ std::string ImageSetDialog::getPatternType(){
         return "circle asymmetrical";
 }
 
-void ImageSetDialog::enableUI(bool value){
-    //save ui entries in new image set settings
-    ui->showVideosCheckBox->setEnabled(value);
-    ui->setImageSet_checkBox->setEnabled(value);
-    ui->numberImages_spinBox->setEnabled(value);
-    ui->rows_spinBox->setEnabled(value);
-    ui->columns_spinBox->setEnabled(value);
-    ui->squareSize_SpinBox->setEnabled(value);
-    ui->chessboard_radioButton->setEnabled(value);
-    ui->circle_radioButton->setEnabled(value);
-    ui->asymCircles_radioButton->setEnabled(value);
+void ImageSetDialog::releaseUi(){
+    ui->showVideosCheckBox->setEnabled(true);
+    ui->setImageSet_checkBox->setEnabled(true);
+    ui->numberImages_spinBox->setEnabled(true);
+    ui->rows_spinBox->setEnabled(true);
+    ui->columns_spinBox->setEnabled(true);
+    ui->squareSize_SpinBox->setEnabled(true);
+    ui->chessboard_radioButton->setEnabled(true);
+    ui->circle_radioButton->setEnabled(true);
+    ui->asymCircles_radioButton->setEnabled(true);
+}
+
+void ImageSetDialog::lockUi(){
+    ui->showVideosCheckBox->setEnabled(false);
+    ui->setImageSet_checkBox->setEnabled(false);
+    ui->numberImages_spinBox->setEnabled(false);
+    ui->rows_spinBox->setEnabled(false);
+    ui->columns_spinBox->setEnabled(false);
+    ui->squareSize_SpinBox->setEnabled(false);
+    ui->chessboard_radioButton->setEnabled(false);
+    ui->circle_radioButton->setEnabled(false);
+    ui->asymCircles_radioButton->setEnabled(false);
 }
 
 void ImageSetDialog::update(){
@@ -151,7 +160,6 @@ void ImageSetDialog::counter(){
 }
 
 void ImageSetDialog::saveImagesInImageSet(cv::Mat leftImage, cv::Mat rightImage){
-
     //create save path
     std::string savePathLeft =  imageSet.getPath() +
                                 "/Left/" +
@@ -174,14 +182,8 @@ void ImageSetDialog::saveImagesInImageSet(cv::Mat leftImage, cv::Mat rightImage)
 }
 
 ImageSet ImageSetDialog::createImageSet(){
-    //Get Current Date as string
-    std::string dirName = HelperFunctions().getCurrentDateAsString();
-
-    //Build path for Image set
-    std::string path = MainSettings().getImageSetsPath() + "/" + dirName;
-
     //Create stereo directory for left and right camera where images are stored
-    HelperFunctions().createStereoDirectory(path);
+    std::string path = DirectoryManager().createImageSetDirectory();
 
     //Create Image set with path
     return ImageSet(path);

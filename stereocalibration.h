@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STEREOCALIBRATION_H
 #define STEREOCALIBRATION_H
 
@@ -9,7 +10,8 @@
 #include <iostream>
 #include <QTextStream>
 #include <string>
-#include "helperfunctions.h"
+
+#include "dialogmanager.h"
 #include "imageset.h"
 
 using namespace std;
@@ -46,7 +48,7 @@ private:
     double resizeFactor = 1;
 
     //methods
-    void loadImageSet();
+    void loadImageSet(std::string);
     void setImageSetDataInUi();
     void displayImages(cv::Mat, cv::Mat);
     std::string splitFileName(const std::string&);
@@ -57,6 +59,7 @@ private:
                        std::string, std::string, std::string,
                        std::vector< std::vector< cv::Point3f > >&,
                        std::vector< std::vector< cv::Point2f > >&, std::vector< std::vector< cv::Point2f > >&);
+
     void findChessBoardCorners(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);
     void findCircleGridSym(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);
     void findCircleGridAsym(cv::Mat, cv::Size, std::vector< cv::Point2f>&, bool&);

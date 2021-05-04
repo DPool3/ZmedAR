@@ -26,9 +26,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    dialogmanager.cpp \
+    directorymanager.cpp \
         main.cpp \
         mainwindow.cpp \
-    helperfunctions.cpp \
     mainsettings.cpp \
     errordialog.cpp \
     stereocalibration.cpp \
@@ -37,11 +38,13 @@ SOURCES += \
     imageset.cpp \
     imagesetdialog.cpp \
     filesystem.cpp \
-    PylonCamera.cpp
+    PylonCamera.cpp \
+    videomanager.cpp
 
 HEADERS += \
+    dialogmanager.h \
+    directorymanager.h \
         mainwindow.h \
-    helperfunctions.h \
     mainsettings.h \
     errordialog.h \
     stereocalibration.h \
@@ -50,7 +53,8 @@ HEADERS += \
     imageset.h \
     imagesetdialog.h \
     filesystem.h \
-    PylonCamera.h
+    PylonCamera.h \
+    videomanager.h
 
 FORMS += \
         mainwindow.ui \
@@ -62,9 +66,9 @@ FORMS += \
     filesystem.ui
 
 INCLUDEPATH += /usr/local/include/opencv2
-INCLUDEPATH += /opt/pylon5/include
+INCLUDEPATH += /opt/pylon/include
 
 LIBS += $(shell pkg-config opencv --libs)
-LIBS += -L/opt/pylon5/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lpylonc \
+LIBS += -L/opt/pylon/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lpylonc \
         -lNodeMapData_gcc_v3_1_Basler_pylon
-LIBS += -L/opt/pylon5/lib64 -lavcodec -lavformat -lavresample -lavutil
+LIBS += -L/opt/pylon/lib64 -lavcodec -lavformat -lavresample -lavutil

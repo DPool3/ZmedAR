@@ -1,15 +1,13 @@
 #include "stereocalibration.h"
 #include "ui_stereocalibration.h"
 
-HelperFunctions helper = HelperFunctions();
-
 StereoCalibration::StereoCalibration(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::StereoCalibration)
 {
     ui->setupUi(this);
 
-    loadImageSet();
+    //loadImageSet();
 }
 
 StereoCalibration::~StereoCalibration()
@@ -20,7 +18,7 @@ StereoCalibration::~StereoCalibration()
 void StereoCalibration::on_startCalibration_button_clicked()
 {
     lockUi();
-    loadImageSet();
+
     try{
         //check if an image set has been loaded
         if(imageSet.getPath() != ""){
@@ -28,22 +26,23 @@ void StereoCalibration::on_startCalibration_button_clicked()
             std::thread t(&StereoCalibration::performSteroCalibration, this);
             t.detach();
         }
+        else{
+            throw std::invalid_argument("Error: Kein Image Set wurde ausgewählt. Bitte wählen Sie ein Image Set aus und starten Sie den Prozess erneut.");
+        }
     }catch(const std::exception& e){
-        std::string text(e.what());
-        helper.callErrorDialog(text);
+        DialogManager().callErrorDialog(e.what());
+        releaseUi();
     }
 }
 
 void StereoCalibration::on_searchFile_button_clicked()
 {
     //Seach yaml file of image set
-    QString qPath = HelperFunctions().getPathFromFileSystem();
+    QString qPath = DialogManager().getPathFromFileSystem();
     //Set line edit
     ui->lineEdit->setText(qPath);
-    //Set currently selected image set
-    helper.setCurrentSelectedImageSetPath(qPath.toStdString());
-    //Reload image set
-    loadImageSet();
+    //load image set
+    loadImageSet(qPath.toStdString());
 }
 
 void StereoCalibration::on_displayImages_checkbox_toggled(bool checked)
@@ -51,10 +50,7 @@ void StereoCalibration::on_displayImages_checkbox_toggled(bool checked)
     this->showImages = checked;
 }
 
-void StereoCalibration::loadImageSet(){
-    //Get path of image set selection from main settings.
-    std::string pathWithAddition = helper.getCurrentSelectedImageSetPath();
-
+void StereoCalibration::loadImageSet(std::string pathWithAddition){
     //delete yaml file from string
     std::string path = splitFileName(pathWithAddition);
 

@@ -4,7 +4,7 @@ ImageSet::ImageSet(std::string path)
 {
     //Save path for write
     this->path = path;
-    this->fileType = ".png";
+    this->fileType = MainSettings().getImageFileType();
 
     //Create file path for settings file
     std::string settingsPath = path + "/StereoCalibrationSettings.yml";
@@ -306,6 +306,8 @@ cv::Mat ImageSet::getRightStereoMap2(){
 }
 
 void ImageSet::updateSettings(){
+    //
+
     //Create file path for settings file
     std::string settingsPath = path + "/StereoCalibrationSettings.yml";
 
