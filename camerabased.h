@@ -9,6 +9,7 @@
 #include <future>
 
 #include "helperfunctions.h"
+#include "videomanager.h"
 #include "PylonCamera.h"
 
 using namespace std;
@@ -32,15 +33,13 @@ private slots:
 
     void retrieveImages();
     void displayImages(cv::Mat, cv::Mat);
-    void saveImages(cv::Mat, cv::Mat);
-    void saveImagesWithPylon();
 
     //parallel
     void saveImagesThread();
-    void saveLeft(cv::Mat);
-    void saveRight(cv::Mat);
 
 private:
+    VideoManager videoManager;
+
     //UI
     Ui::CameraBased *ui;
 
@@ -50,9 +49,6 @@ private:
     //Opencv
     QTimer *retrieveImagesTimer;
     QTimer *saveImageTimer;
-
-    cv::VideoCapture captureLeft;
-    cv::VideoCapture captureRight;
 
     cv::VideoWriter writerLeft;
     cv::VideoWriter writerRight;

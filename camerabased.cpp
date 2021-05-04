@@ -9,11 +9,11 @@ CameraBased::CameraBased(QWidget *parent) :
 
     //set update timer
     retrieveImagesTimer = new QTimer(this);
-    retrieveImagesTimer->setInterval(1000/HelperFunctions().getFpsFromMainSettings());
+    retrieveImagesTimer->setInterval(1000/videoManager.fps);
     connect(retrieveImagesTimer, SIGNAL(timeout()), this, SLOT(retrieveImages()));
 
     saveImageTimer = new QTimer(this);
-    saveImageTimer->setInterval(1000/HelperFunctions().getSaveFpsFromMainSettings());
+    saveImageTimer->setInterval(1000/videoManager.fps);
     connect(saveImageTimer, SIGNAL(timeout()), this, SLOT(saveImagesThread()));
 }
 
@@ -25,7 +25,6 @@ CameraBased::~CameraBased()
 
 void CameraBased::on_startStopRecording_clicked()
 {
-
     //Initialize recording and displaying and start timer if not active
     if(!retrieveImagesTimer->isActive()){
 
@@ -41,7 +40,6 @@ void CameraBased::on_startStopRecording_clicked()
             return;
         }
 
-
         //disable checkboxes
         ui->showVideosCheckBox->setEnabled(false);
         ui->saveVideoCheckBox->setEnabled(false);
@@ -51,9 +49,7 @@ void CameraBased::on_startStopRecording_clicked()
 
         //reset VideoWriter if used
         if(saveVideo){
-            //cameras.setCreateVideo(true);
-            //cameras.initVideoWriter();
-            HelperFunctions().createVideoWriter(writerLeft, writerRight);
+            videoManager.createVideoWriterPair(writerLeft, writerRight, "");
             saveImageTimer->start();
         }
 
@@ -76,11 +72,7 @@ void CameraBased::on_startStopRecording_clicked()
             saveImageTimer->stop();
 
             //Stop videoWriter
-            writerLeft.release();
-            writerRight.release();
-
-            //close video writer to save video
-            //cameras.closeVideoWriter();
+            videoManager.releaseVideoWriterPair(writerLeft, writerRight);
         }
 
         //clear last images
@@ -175,33 +167,5 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
 
 void CameraBased::saveImagesThread(){
     if(!this->imageLeft.empty() && !this->imageLeft.empty())
-        saveImages(this->imageLeft, this->imageRight);
-}
-
-void CameraBased::saveImages(cv::Mat imgLeft, cv::Mat imgRight){
-    if(this->saveVideo){
-        QElapsedTimer timer;
-        timer.start();
-        std::thread saveLeftThread(&CameraBased::saveLeft, this, imgLeft);
-        std::thread saveRightThread(&CameraBased::saveRight, this, imgRight);
-        saveLeftThread.join();
-        saveRightThread.join();
-        std::cout << "time for saving " << timer.elapsed() << " ms" << endl;
-        saveTimeOverall += timer.elapsed();
-        saveExecutionCounter++;
-    }
-}
-
-void CameraBased::saveLeft(cv::Mat imgLeft){
-    cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
-    writerLeft.write(imgLeft);
-}
-
-void CameraBased::saveRight(cv::Mat imgRight){
-    cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
-    writerRight.write(imgRight);
-}
-
-void CameraBased::saveImagesWithPylon(){
-
+        videoManager.saveImages(this->imageLeft, this->imageRight, writerLeft, writerRight);
 }

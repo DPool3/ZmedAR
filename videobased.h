@@ -4,10 +4,9 @@
 #include <QDialog>
 #include <QTimer>
 #include <opencv2/opencv.hpp>
-#include <sys/stat.h>
 
-#include "helperfunctions.h"
-#include "mainsettings.h"
+#include "dialogmanager.h"
+#include "videomanager.h"
 
 namespace Ui {
 class VideoBased;
@@ -30,11 +29,18 @@ private slots:
 
     void saveEnteredPaths();
     void displayImages(cv::Mat, cv::Mat);
-    bool checkFilePath(std::string);
 
     void update();
 
+    void start();
+    void stop();
+
+    void releaseUi();
+    void lockUi();
+
 private:
+    VideoManager videoManager;
+
     Ui::VideoBased *ui;
 
     QTimer *updateTimer;

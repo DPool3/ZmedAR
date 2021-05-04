@@ -1,3 +1,4 @@
+#pragma once
 #ifndef MAINSETTINGS_H
 #define MAINSETTINGS_H
 
@@ -30,19 +31,12 @@ public:
     int getSaveFps();
 
     //File name get & set
-    bool setFileName(std::string);
-    std::string getFileName();
+    std::string getVideoFileName();
+    bool setVideoFileName(std::string);
 
     //get file type
-    std::string getFileType();
-
-    //Record videos get & set
-    bool setRecordVideos(bool);
-    bool getRecordVideos();
-
-    //Display videos get & set
-    bool setDisplayVideos(bool);
-    bool getDisplayVideos();
+    std::string getVideoFileType();
+    std::string getImageFileType();
 
     //Framesize
     cv::Size getFrameSize();
@@ -61,10 +55,9 @@ private:
     int fps = 75;
     int saveFps = 30;
 
-    std::string fileName = "video";
-    std::string fileType = ".mp4";
-    bool recordVideos = false;
-    bool displayVideos = false;
+    std::string videoFileName = "video";
+    std::string videoFileType = ".mp4";
+    std::string imageFileType = ".png";
 };
 
 #endif // MAINSETTINGS_H

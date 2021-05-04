@@ -4,7 +4,6 @@ MainSettings::MainSettings(){
 
 }
 
-//generel
 //getter
 std::string MainSettings::getImageSetSelectionPath()
 {
@@ -32,6 +31,22 @@ int MainSettings::getFps(){
 
 int MainSettings::getSaveFps(){
     return saveFps;
+}
+
+std::string MainSettings::getVideoFileName(){
+    return this->videoFileName;
+}
+
+std::string MainSettings::getVideoFileType(){
+    return this->videoFileType;
+}
+
+std::string MainSettings::getImageFileType(){
+    return this->imageFileType;
+}
+
+cv::Size MainSettings::getFrameSize(){
+    return framesize;
 }
 
 //setter
@@ -76,41 +91,10 @@ void MainSettings::setSaveFps(int newSaveFps){
     this->saveFps = newSaveFps;
 }
 
-//Videos tab
-bool MainSettings::setDisplayVideos(bool newValue){
-    displayVideos = newValue;
-    return true;
-}
-
-bool MainSettings::getDisplayVideos(){
-    return this->displayVideos;
-}
-
-bool MainSettings::setRecordVideos(bool newValue){
-    recordVideos = newValue;
-    return true;
-}
-
-bool MainSettings::getRecordVideos(){
-    return this->recordVideos;
-}
-
-bool MainSettings::setFileName(std::string newFileName){
+bool MainSettings::setVideoFileName(std::string newFileName){
     if(!newFileName.empty()){
-        fileName = newFileName;
+        videoFileName = newFileName;
         return true;
     }
     return false;
-}
-
-std::string MainSettings::getFileName(){
-    return this->fileName;
-}
-
-std::string MainSettings::getFileType(){
-    return this->fileType;
-}
-
-cv::Size MainSettings::getFrameSize(){
-    return framesize;
 }

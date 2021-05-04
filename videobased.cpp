@@ -7,12 +7,8 @@ VideoBased::VideoBased(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //Set frames per second in ms
-    //const int fps = 1000/HelperFunctions().getFpsFromMainSettings();
-
-    //set update timer
     this->updateTimer = new QTimer(this);
-    this->updateTimer->setInterval(1000/11);
+    this->updateTimer->setInterval(1000/videoManager.saveFps);
     connect(this->updateTimer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
@@ -24,44 +20,10 @@ VideoBased::~VideoBased()
 void VideoBased::on_startVideo_button_clicked()
 {
     if(!updateTimer->isActive()){
-        //disable checkbox
-        ui->showVideosCheckBox->setEnabled(false);
-
-        //change button text
-        ui->startVideo_button->setText(QString::fromStdString("Stoppe Videoverarbeitung"));
-
-        //save entered paths
-        saveEnteredPaths();
-
-        if(!checkFilePath(this->videoPathLeft) || !checkFilePath(this->videoPathRight)){
-            //open error dialog with error message
-            std::cout << "Error: Invalid path\n";
-            return;
-        }
-
-        //initialize video reader left and right for saved paths
-        this->captureLeft.open(this->videoPathLeft);
-        HelperFunctions().checkVideoCaptureOpened(captureLeft);
-
-        this->captureRight.open(this->videoPathRight);
-        HelperFunctions().checkVideoCaptureOpened(captureRight);
-
-        //start timer
-        updateTimer->start();
+        start();
     }
     else {
-        //Stop timer
-        updateTimer->stop();
-
-        //stop video capture
-        this->captureLeft.release();
-        this->captureRight.release();
-
-        //enable checkbox
-        ui->showVideosCheckBox->setEnabled(true);
-
-        //change button text
-        ui->startVideo_button->setText(QString::fromStdString("Starte Videoverarbeitung"));
+        stop();
     }
 }
 
@@ -72,14 +34,12 @@ void VideoBased::on_showVideosCheckBox_toggled(bool checked)
 
 void VideoBased::on_searchFile_button_2_clicked()
 {
-    //search file and set line edit
-    ui->videoFilePathRight_QLineEdit->setText(HelperFunctions().getPathFromFileSystem());
+    ui->videoFilePathRight_QLineEdit->setText(DialogManager().getPathFromFileSystem());
 }
 
 void VideoBased::on_searchFile_button_clicked()
 {
-    //search file and set line edit
-    ui->videoFilePathLeft_QLineEdit->setText(HelperFunctions().getPathFromFileSystem());
+    ui->videoFilePathLeft_QLineEdit->setText(DialogManager().getPathFromFileSystem());
 }
 
 void VideoBased::saveEnteredPaths(){
@@ -87,26 +47,54 @@ void VideoBased::saveEnteredPaths(){
     this->videoPathRight = ui->videoFilePathRight_QLineEdit->text().toStdString();
 }
 
-void VideoBased::update(){
+void VideoBased::releaseUi(){
+    ui->showVideosCheckBox->setEnabled(true);
+    ui->startVideo_button->setText(QString::fromStdString("Starte Videoverarbeitung"));
+    ui->searchFile_button->setEnabled(true);
+    ui->searchFile_button_2->setEnabled(true);
+    ui->videoFilePathLeft_QLineEdit->setEnabled(true);
+    ui->videoFilePathRight_QLineEdit->setEnabled(true);
+}
 
-    //read frames
+void VideoBased::lockUi(){
+    ui->showVideosCheckBox->setEnabled(false);
+    ui->startVideo_button->setText(QString::fromStdString("Stoppe Videoverarbeitung"));
+    ui->searchFile_button->setEnabled(false);
+    ui->searchFile_button_2->setEnabled(false);
+    ui->videoFilePathLeft_QLineEdit->setEnabled(false);
+    ui->videoFilePathRight_QLineEdit->setEnabled(false);
+}
+
+void VideoBased::start(){
+    lockUi();
+    saveEnteredPaths();
+    try{
+        videoManager.createVideoCapturePair(this->captureLeft, this->captureRight, this->videoPathLeft, this->videoPathRight);
+    }catch(const std::invalid_argument& e){
+        DialogManager().callErrorDialog(e.what());
+        stop();
+        return;
+    }
+    updateTimer->start();
+}
+
+void VideoBased::stop(){
+    updateTimer->stop();
+    videoManager.releaseVideoCapturePair(this->captureLeft, this->captureRight);
+    releaseUi();
+}
+
+void VideoBased::update(){
     this->captureLeft >> this->imageLeft;
     this->captureRight >> this->imageRight;
 
     if(imageLeft.empty() || imageRight.empty()){
-        this->updateTimer->stop();
-        captureLeft.release();
-        captureRight.release();
-        ui->showVideosCheckBox->setEnabled(true);
-        ui->startVideo_button->setText(QString::fromStdString("Starte Videoverarbeitung"));
+        stop();
         return;
     }
-
-    //display image in ui
     displayImages(this->imageLeft, this->imageRight);
 
     //do something with the images
-    //record and/or display images
 }
 
 void VideoBased::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
@@ -131,20 +119,4 @@ void VideoBased::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
         ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());
         ui->videoLabelRight->resize(ui->videoLabelRight->pixmap()->size());
     }
-}
-
-bool VideoBased::checkFilePath(std::string path){
-    struct stat buffer;
-
-    //check if empty
-    bool exists = (stat (path.c_str(), &buffer) == 0);
-
-    if(exists){
-        return true;
-    }
-
-    //no valid path display error dialog
-    HelperFunctions().callErrorDialog("Mindestens ein Dateipfad ist nicht valide. Bitte prüfen Sie die gewählten Pfade.");
-
-    return false;
 }
