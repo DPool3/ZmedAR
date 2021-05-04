@@ -28,6 +28,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     dialogmanager.cpp \
     directorymanager.cpp \
+    imageprocessor.cpp \
         main.cpp \
         mainwindow.cpp \
     mainsettings.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
 HEADERS += \
     dialogmanager.h \
     directorymanager.h \
+    imageprocessor.h \
         mainwindow.h \
     mainsettings.h \
     errordialog.h \
