@@ -100,20 +100,15 @@ void VideoBased::update(){
 void VideoBased::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
     if(this->showVideo){
         //Resize Images
-        cv::resize(imageLeft, imageLeft, cv::Size(480, 320), 0, 0);
-        cv::resize(imageRight, imageRight, cv::Size(480, 320), 0, 0);
 
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(imageLeft, imageLeft, CV_BGR2RGB);
-        cv::cvtColor(imageRight, imageRight, CV_BGR2RGB);
+        //imageProcessor.cannyEdgeOnImagePair(imageLeft, imageRight);
 
-        //Convert to QImage
-        QImage qimgLeft((const unsigned char*) imageLeft.data, imageLeft.cols, imageLeft.rows, QImage::Format_RGB888);
-        QImage qimgRight((const unsigned char*) imageRight.data, imageRight.cols, imageRight.rows, QImage::Format_RGB888);
+        QImage qLeft = imageProcessor.prepImageForDisplay(imageLeft);
+        QImage qRight = imageProcessor.prepImageForDisplay(imageRight);
 
         //Display on Input Label
-        ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qimgLeft));
-        ui->videoLabelRight->setPixmap(QPixmap::fromImage(qimgRight));
+        ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qLeft));
+        ui->videoLabelRight->setPixmap(QPixmap::fromImage(qRight));
 
         //Resize the label to fit the image
         ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());

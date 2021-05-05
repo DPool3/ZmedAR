@@ -7,6 +7,7 @@
 
 #include "dialogmanager.h"
 #include "videomanager.h"
+#include "imageprocessor.h"
 
 namespace Ui {
 class VideoBased;
@@ -40,6 +41,7 @@ private slots:
 
 private:
     VideoManager videoManager;
+    ImageProcessor imageProcessor;
 
     Ui::VideoBased *ui;
 
