@@ -27,89 +27,10 @@ void CameraBased::on_startStopRecording_clicked()
 {
     //Initialize recording and displaying and start timer if not active
     if(!retrieveImagesTimer->isActive()){
-
-        //Initialize cameras
-        try{
-            cameras.initCameras();
-        }
-        catch (const GenericException &e)
-        {
-            // Error handling
-            cerr << "An exception occurred during initialization of the cameras." << endl
-            << e.GetDescription() << endl;
-            return;
-        }
-
-        //disable checkboxes
-        ui->showVideosCheckBox->setEnabled(false);
-        ui->saveVideoCheckBox->setEnabled(false);
-
-        //change buttont text
-        ui->startStopRecording->setText(QString::fromStdString("Stoppe Aufnahme"));
-
-        //reset VideoWriter if used
-        if(saveVideo){
-            videoManager.createVideoWriterPair(writerLeft, writerRight, "");
-            saveImageTimer->start();
-        }
-
-        //start grabbing images of the cameras
-        cameras.startGrabbing();
-
-        //start timer. Display timer started in update.
-        retrieveImagesTimer->start();
-        overallTimer.start();
+        start();
     }
     else{
-        //stop retrieving images -> stops calling grab function
-        retrieveImagesTimer->stop();
-
-        //stop grabbing images of the cameras -> disables grabbing of the cameras internaly
-        cameras.stopGrabbing();
-
-        if(saveVideo){
-            //stop saving
-            saveImageTimer->stop();
-
-            //Stop videoWriter
-            videoManager.releaseVideoWriterPair(writerLeft, writerRight);
-        }
-
-        //clear last images
-        this->imageLeft.release();
-        this->imageRight.release();
-
-        int i = overallTimer.elapsed();
-
-        //calculate framerate of this run
-        double seconds = i / 1000;
-        double fpsPerSecond = executionCounter/seconds;
-        std::cout << "update has been executed " << executionCounter << " times in " << seconds << "seconds." << endl;
-        std::cout << "This equals to " << fpsPerSecond << " frames per second." << endl;
-
-        double displayTimeAverage = displayTimeOverall/executionCounter;
-        double saveTimeAverage = saveTimeOverall/saveExecutionCounter;
-        double completeTimeAverage = completeTimeOverall/executionCounter;
-
-        std::cout << "average fromat time was " << cameras.getAverageFormatTime() << " ms" << endl;
-        std::cout << "average display time was " << displayTimeAverage << " ms" << endl;
-        std::cout << "average save time was " << saveTimeAverage << " ms" << endl;
-        //std::cout << "average save time was " << cameras.getAverageSaveTime() << " ms" << endl;
-        std::cout << "average complete time was " << completeTimeAverage << " ms" << endl;
-
-        //reset variables for framerate calculation
-        executionCounter = 0;
-        saveExecutionCounter = 0;
-        displayTimeOverall = 0;
-        saveTimeOverall = 0;
-        completeTimeOverall = 0;
-
-        //enable checkboxes
-        ui->showVideosCheckBox->setEnabled(true);
-        ui->saveVideoCheckBox->setEnabled(true);
-
-        //change button text
-        ui->startStopRecording->setText(QString::fromStdString("Starte Videoaufnahme"));
+        stop();
     }
 
 }
@@ -126,12 +47,109 @@ void CameraBased::on_saveVideoCheckBox_toggled(bool checked)
     this->saveVideo = checked;
 }
 
+void CameraBased::lockUi(){
+    //disable checkboxes
+    ui->showVideosCheckBox->setEnabled(false);
+    ui->saveVideoCheckBox->setEnabled(false);
+
+    //change buttont text
+    ui->startStopRecording->setText(QString::fromStdString("Stoppe Aufnahme"));
+}
+
+void CameraBased::releaseUi(){
+    //enable checkboxes
+    ui->showVideosCheckBox->setEnabled(true);
+    ui->saveVideoCheckBox->setEnabled(true);
+
+    //change button text
+    ui->startStopRecording->setText(QString::fromStdString("Starte Videoaufnahme"));
+}
+
+void CameraBased::start(){
+    lockUi();
+
+    //Initialize cameras
+    try{
+        cameras.initCameras();
+    }
+    catch (const GenericException &e)
+    {
+        std::string exceptionMsg = e.what();
+        std::string errMsg = "Error: Es gabe einen Fehler während der Inititalisierung der Kameras.\n\"" + exceptionMsg + "\"";
+        DialogManager().callErrorDialog(errMsg);
+        return;
+    }
+
+    //start grabbing images of the cameras
+    cameras.startGrabbing();
+
+    //start timer. Display timer started in update.
+    retrieveImagesTimer->start();
+    overallTimer.start();
+
+    //reset VideoWriter if used
+    if(saveVideo){
+        videoManager.createVideoWriterPair(writerLeft, writerRight, "");
+        saveImageTimer->start();
+    }
+}
+
+void CameraBased::stop(){
+
+    if(saveVideo){
+        saveImageTimer->stop();
+        videoManager.releaseVideoWriterPair(writerLeft, writerRight);
+    }
+
+    //stop retrieving images -> stops calling grab function
+    retrieveImagesTimer->stop();
+
+    //stop grabbing images of the cameras -> disables grabbing of the cameras internaly
+    cameras.stopGrabbing();
+
+    //clear last images
+    this->imageLeft.release();
+    this->imageRight.release();
+
+    int i = overallTimer.elapsed();
+
+    //calculate framerate of this run
+    double seconds = i / 1000;
+    double fpsPerSecond = executionCounter/seconds;
+    std::cout << "update has been executed " << executionCounter << " times in " << seconds << "seconds." << endl;
+    std::cout << "This equals to " << fpsPerSecond << " frames per second." << endl;
+
+    double displayTimeAverage = displayTimeOverall/executionCounter;
+    double saveTimeAverage = saveTimeOverall/saveExecutionCounter;
+    double completeTimeAverage = completeTimeOverall/executionCounter;
+
+    std::cout << "average fromat time was " << cameras.getAverageFormatTime() << " ms" << endl;
+    std::cout << "average display time was " << displayTimeAverage << " ms" << endl;
+    std::cout << "average save time was " << saveTimeAverage << " ms" << endl;
+    std::cout << "average complete time was " << completeTimeAverage << " ms" << endl;
+
+    //reset variables for framerate calculation
+    executionCounter = 0;
+    saveExecutionCounter = 0;
+    displayTimeOverall = 0;
+    saveTimeOverall = 0;
+    completeTimeOverall = 0;
+
+    releaseUi();
+}
+
 void CameraBased::retrieveImages(){
     QElapsedTimer timer;
     timer.start();
 
-    if(cameras.grabImages(this->imageLeft, this->imageRight)){
-        displayImages(this->imageLeft, this->imageRight);
+    try{
+        if(cameras.grabImages(this->imageLeft, this->imageRight)){
+            displayImages(this->imageLeft, this->imageRight);
+        }
+    }catch(std::exception& e){
+        DialogManager().callErrorDialog(e.what());
+        stop();
+        return;
     }
 
     cout << "complete run of retrieve takes " << timer.elapsed() << "ms" << endl <<
@@ -144,21 +162,15 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
     if(this->showVideo){
         QElapsedTimer timer;
         timer.start();
-        //Resize Images
-        cv::resize(imgLeft, imgLeft, cv::Size(480, 320), 0, 0);
-        cv::resize(imgRight, imgRight, cv::Size(480, 320), 0, 0);
 
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(imgLeft, imgLeft, CV_BGR2RGB);
-        cv::cvtColor(imgRight, imgRight, CV_BGR2RGB);
+        //imageProcessor.cannyEdgeOnImagePair(imgLeft, imgRight);
 
-        //Convert to QImage
-        QImage qimgLeft((const unsigned char*) imgLeft.data, imgLeft.cols, imgLeft.rows, QImage::Format_RGB888);
-        QImage qimgRight((const unsigned char*) imgRight.data, imgRight.cols, imgRight.rows, QImage::Format_RGB888);
+        QImage qLeft = imageProcessor.prepImageForDisplay(imgLeft);
+        QImage qRight = imageProcessor.prepImageForDisplay(imgRight);
 
         //Display on Input Label
-        ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qimgLeft));
-        ui->videoLabelRight->setPixmap(QPixmap::fromImage(qimgRight));
+        ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qLeft));
+        ui->videoLabelRight->setPixmap(QPixmap::fromImage(qRight));
 
         //Resize the label to fit the image
         ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());
@@ -169,7 +181,7 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
     }
 }
 
-void CameraBased::saveImagesThread(){
+void CameraBased::saveImages(){
     if(!this->imageLeft.empty() && !this->imageLeft.empty())
         videoManager.saveImages(this->imageLeft, this->imageRight, writerLeft, writerRight);
 }

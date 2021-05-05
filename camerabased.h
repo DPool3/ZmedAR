@@ -10,6 +10,8 @@
 
 #include "videomanager.h"
 #include "PylonCamera.h"
+#include "dialogmanager.h"
+#include "imageprocessor.h"
 
 using namespace std;
 
@@ -33,11 +35,17 @@ private slots:
     void retrieveImages();
     void displayImages(cv::Mat, cv::Mat);
 
-    //parallel
-    void saveImagesThread();
+    void saveImages();
+
+    void start();
+    void stop();
+
+    void lockUi();
+    void releaseUi();
 
 private:
     VideoManager videoManager;
+    ImageProcessor imageProcessor;
 
     //UI
     Ui::CameraBased *ui;
