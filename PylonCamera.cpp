@@ -14,7 +14,7 @@ void pylonCamera::initCameras(){
     DeviceInfoList_t devices;
 
     if(tlFactory.EnumerateDevices(devices) < 2){
-        throw RUNTIME_EXCEPTION("Less than two camera found");
+        throw invalid_argument("Es wurden wengier als zwei Kameras gefunden. Bitte Verbinden Sie die Kameras erneut und versuchen es nochmal.");
     }
 
     //set converter parameters
@@ -36,9 +36,15 @@ void pylonCamera::initCameras(){
 
     cameras.Open();
 
-    GenApi_3_1_Basler_pylon::INodeMap& nodemap = cameras[1].GetNodeMap();
-    CBooleanParameter(nodemap, "ReverseX").SetValue(true);
-    CBooleanParameter(nodemap, "ReverseY").SetValue(true);
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
+    CBooleanParameter(nodemap1, "ReverseX").SetValue(true);
+    CBooleanParameter(nodemap1, "ReverseY").SetValue(true);
+    CFloatParameter(nodemap1, "ExposureTime").SetValue(10000.0);
+    CFloatParameter(nodemap1, "BslBrightness").SetValue(0.1);
+
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
+    CFloatParameter(nodemap0, "ExposureTime").SetValue(10000.0);
+    CFloatParameter(nodemap0, "BslBrightness").SetValue(0.1);
 }
 
 void pylonCamera::startGrabbing(){
@@ -76,12 +82,10 @@ bool pylonCamera::grabImages(cv::Mat &imgLeft, cv::Mat &imgRight){
     }
     catch (const GenericException &e)
     {
-        // Error handling
-        cerr << "An exception occurred in update." << endl
-        << e.GetDescription() << endl;
-
-        //ToDo throw if "No grab result data is referenced. Cannot access NULL pointer."
-        //Display errorwindow and stop current display/recording
+        std::string exceptionMsg = e.what();
+        std::string errMsg = "Error: es gab einen Fehler bei dem Beziehend er Bilder. Bitte prüfen Sie die Verbindung der Kameras und starten die Aufnahme erneut.\n\"" +
+                             exceptionMsg + "\"";
+        throw runtime_error(errMsg);
     }
 }
 
