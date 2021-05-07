@@ -72,7 +72,7 @@ void CameraBased::start(){
     try{
         cameras.initCameras();
     }
-    catch (const GenericException &e)
+    catch (const exception &e)
     {
         std::string exceptionMsg = e.what();
         std::string errMsg = "Error: Es gabe einen Fehler während der Inititalisierung der Kameras.\n\"" + exceptionMsg + "\"";
