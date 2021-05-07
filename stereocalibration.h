@@ -10,6 +10,7 @@
 #include <iostream>
 #include <QTextStream>
 #include <string>
+#include <thread>
 
 #include "dialogmanager.h"
 #include "imageset.h"
