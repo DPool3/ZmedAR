@@ -14,7 +14,7 @@ CameraBased::CameraBased(QWidget *parent) :
 
     saveImageTimer = new QTimer(this);
     saveImageTimer->setInterval(1000/videoManager.fps);
-    connect(saveImageTimer, SIGNAL(timeout()), this, SLOT(saveImagesThread()));
+    connect(saveImageTimer, SIGNAL(timeout()), this, SLOT(saveImages()));
 }
 
 CameraBased::~CameraBased()
@@ -163,7 +163,7 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
         QElapsedTimer timer;
         timer.start();
 
-        //imageProcessor.cannyEdgeOnImagePair(imgLeft, imgRight);
+        imageProcessor.stereoVisualOdometry(imgLeft, imgRight);
 
         QImage qLeft = imageProcessor.prepImageForDisplay(imgLeft);
         QImage qRight = imageProcessor.prepImageForDisplay(imgRight);
