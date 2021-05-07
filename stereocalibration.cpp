@@ -93,6 +93,7 @@ void StereoCalibration::performSteroCalibration()
     //E stores the essential matrix.
     //R stores the rotation from the left to the right camera.
     //T stores the translation from the left to the right camera.
+    //Q is required to get depth map from disparity map
     cv::Mat CamL, DistCoefL, R_L, T_L;
     cv::Mat CamR, DistCoefR, R_R, T_R;
     cv::Mat R, T, E, F;
@@ -263,12 +264,13 @@ void StereoCalibration::loadImgPoints(
         if (foundL && foundR) {
             std::cout << "Corners found for image " << i << endl;
 
-            cv::TermCriteria criteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 30, 0.001);
+            if(this->showImages && patternType == "chessboard"){
 
-            cv::cornerSubPix(grayL, cornersL, cv::Size(3, 3), cv::Size(-1, -1), criteria);
-            cv::cornerSubPix(grayR, cornersR, cv::Size(3, 3), cv::Size(-1, -1), criteria);
+                cv::TermCriteria criteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 30, 0.001);
 
-            if(this->showImages){
+                cv::cornerSubPix(grayL, cornersL, cv::Size(3, 3), cv::Size(-1, -1), criteria);
+                cv::cornerSubPix(grayR, cornersR, cv::Size(3, 3), cv::Size(-1, -1), criteria);
+
                 cv::Mat tempLeft = imgL;
                 cv::Mat tempRight = imgR;
 
