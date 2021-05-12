@@ -274,7 +274,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
 
     //2. Feature matching between the left images of each stereo pair
     //Brute force (Basics of Brute-Force Matcher ) oder FLANN (Fast Library for Approximate Nearest Neighbors)
-    if(!prevImageLeft.empty() && !prevImageRight.empty()){
+    if((!prevImageLeft.empty() && !prevImageRight.empty()) &&
+        !descriptorLeft.empty() && !descriptorRight.empty()){
         switch (matchingMethod) {
         case 1:{
             //Brute-Force Matcher
@@ -306,6 +307,9 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
 //        cv::imshow("matches right", imgMatchesRight);
 //        cv::waitKey(5000);
 //        cv::destroyAllWindows();
+    }
+    else{
+        std::cerr << "No Features could be detected and therefore no matches could be found." << std::endl;
     }
 
     double matchingTime = matchingTimer.elapsed();
