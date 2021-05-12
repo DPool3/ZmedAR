@@ -299,14 +299,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
             break;
         }
 
-        //Display Matches
-//        cv::Mat imgMatchesLeft, imgMatchesRight;
-//        cv::drawMatches(prevImageLeft, prevKeypointsLeft, remappedL, keyPointVectorLeft, matchesLeft, imgMatchesLeft);
-//        cv::drawMatches(prevImageRight, prevKeypointsRight, remappedR, keyPointVectorRight, matchesRight, imgMatchesRight);
-//        cv::imshow("matches left", imgMatchesLeft);
-//        cv::imshow("matches right", imgMatchesRight);
-//        cv::waitKey(5000);
-//        cv::destroyAllWindows();
+        std::cout << matchesLeft.size() << " Matches Left." << std::endl;
+        std::cout << matchesRight.size() << " Matches Right." << std::endl;
     }
     else{
         std::cerr << "No Features could be detected and therefore no matches could be found." << std::endl;
