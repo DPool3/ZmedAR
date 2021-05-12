@@ -68,6 +68,8 @@ void CameraBased::releaseUi(){
 void CameraBased::start(){
     lockUi();
 
+    imageProcessor = ImageProcessor();
+
     //Initialize cameras
     try{
         cameras.initCameras();
