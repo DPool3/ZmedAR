@@ -46,261 +46,89 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
     QElapsedTimer totalImageMatchingTimer;
     totalImageMatchingTimer.start();
 
-    std::string selectedDetector = "";
-    std::string selectedDescriptor = "";
-    std::string selectedMatcher = "";
+    //increase iterations for time calculation
     iterations++;
 
-    //read in used image set to use variables for rectification and remapping
-    int featureDetectorMethod = 1;
-    int featureDescriptorMethod = 1;
-    int matchingMethod = 1;
+    //choose methods for detection, description and matching
+    int selectedFeatureDetector = 1;
+    int selectedFeatureDescriptor = 1;
+    int selectedFeatureMatching = 1;
 
+    //read in used image set to use variables for rectification and remapping
     cv::Mat Left_Stereo_Map1 = imageSet.getLeftStereoMap1();
     cv::Mat Left_Stereo_Map2 = imageSet.getLeftStereoMap2();
     cv::Mat Right_Stereo_Map1 = imageSet.getRightStereoMap1();
     cv::Mat Right_Stereo_Map2 = imageSet.getRightStereoMap2();
 
-    cv::Mat grayL, grayR, remappedL, remappedR;
-
+    //variables for results
+//    cv::Mat grayL, grayR;
+    cv::Mat remappedL, remappedR;
     cv::Mat descriptorLeft, descriptorRight;
     std::vector<cv::DMatch> matchesLeft, matchesRight;
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
 
+    //color conversion rgb to gray for faster detection
 //    cv::cvtColor(imageLeft, grayL, CV_RGB2GRAY);
 //    cv::cvtColor(imageRight, grayR, CV_RGB2GRAY);
 
+    //remap images to remove distortion and to rectify
     cv::remap(imageLeft, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imageRight, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
 
+    //1. Feature Detection
     QElapsedTimer detectorTimer;
     detectorTimer.start();
 
-    //1. Feature detection for both stereo pair images
-    //1=ORB, 2=FAST, 3=BRISK, 4=AKAZE, 5=AGAST, 6=SIFT, 7=SURF
-    switch (featureDetectorMethod) {
-    case 1:{
-        //ORB - Oriented FAST and Rotated BRIEF
-        cv::Ptr<cv::ORB> orb = cv::ORB::create();
-        orb->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        orb->detect(remappedR, keyPointVectorRight, cv::Mat());
+//    std::thread t1detect([&] {keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);});
+//    std::thread t2detect([&] {keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);});
+//    t1detect.join();
+//    t2detect.join();
 
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "ORB";
-
-        break;
-    }
-    case 2:{
-        //FAST is only a feature detector and has no descriptors to compute.
-        cv::Ptr<cv::FastFeatureDetector> fast = cv::FastFeatureDetector::create();
-        fast->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        fast->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "FAST";
-
-        break;
-    }
-    case 3:{
-        //BRISK
-        cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
-        brisk->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        brisk->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "BRISK";
-
-        break;
-    }
-    case 4:{
-        //AKAZE
-        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
-        akaze->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        akaze->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "AKAZE";
-
-        break;
-    }
-    case 5:{
-        //AGAST
-        cv::Ptr<cv::AgastFeatureDetector> agast = cv::AgastFeatureDetector::create();
-        agast->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        agast->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "AGAST";
-
-        break;
-    }
-    case 6:{
-        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
-        sift->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        sift->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "SIFT";
-
-        break;
-    }
-    case 7:{
-        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
-        surf->detect(remappedL, keyPointVectorLeft, cv::Mat());
-        surf->detect(remappedR, keyPointVectorRight, cv::Mat());
-
-        cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-        cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-
-        imageLeft = remappedL;
-        imageRight = remappedR;
-
-        selectedDetector = "SURF";
-
-        break;
-    }
-    default:
-        return;
-    }
+    keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);
+    keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);
 
     double detectionTime = detectorTimer.elapsed();
     detectionTimeAcc = detectionTimeAcc + detectionTime;
 
+    //1.1 (Optional) draw matches
+    cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
+    cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
+    imageLeft = remappedL;
+    imageRight = remappedR;
+
+    //1.2 Feature Description
     QElapsedTimer descriptorTimer;
     descriptorTimer.start();
 
-    //1.2 Feature description for both images
-    //1=ORB, 2=BRIEF, 3=SIFT, 4=SURF, 5=BRISK, 6=AKAZE
-    switch (featureDescriptorMethod) {
-    case 1:{
-        //ORB - Oriented FAST and Rotated BRIEF
-        cv::Ptr<cv::ORB> orb = cv::ORB::create();
-        orb->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        orb->compute(remappedR, keyPointVectorRight, descriptorRight);
+//    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);});
+//    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);});
+//    t1descript.join();
+//    t2descript.join();
 
-        selectedDescriptor = "ORB";
-
-        break;
-    }
-    case 2:{
-        //BRIEF (Binary Robust Independent Elementary) -> non free
-        cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> brief = cv::xfeatures2d::BriefDescriptorExtractor::create();
-        brief->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        brief->compute(remappedR, keyPointVectorRight, descriptorRight);
-
-        selectedDescriptor = "BRIEF";
-
-        break;
-    }
-    case 3:{
-        //SIFT (Scale-invariant feature transform)
-        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
-        sift->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        sift->compute(remappedR, keyPointVectorRight, descriptorRight);
-
-        selectedDescriptor = "SIFT";
-
-        break;
-    }
-    case 4:{
-        //SURF (Speeded Up Robust Features)
-        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
-        surf->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        surf->compute(remappedR, keyPointVectorRight, descriptorRight);
-
-        selectedDescriptor = "SURF";
-
-        break;
-    }
-    case 5:{
-        //BRISK (Binary Robust Invariant Scalable Keypoints)
-        cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
-        brisk->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        brisk->compute(remappedR, keyPointVectorRight, descriptorRight);
-
-        selectedDescriptor = "BRISK";
-
-        break;
-    }
-    case 6:{
-        //Can Only be used with KAZE or AKAZE Keypoints
-        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
-        akaze->compute(remappedL, keyPointVectorLeft, descriptorLeft);
-        akaze->compute(remappedR, keyPointVectorRight, descriptorRight);
-
-        selectedDescriptor = "AKAZE";
-
-        break;
-    }
-    default:
-        break;
-    }
+    descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);
+    descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);
 
     double descriptionTime = descriptorTimer.elapsed();
     descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 
+    //2. Feature Matching
     QElapsedTimer matchingTimer;
     matchingTimer.start();
 
-    //2. Feature matching between the left images of each stereo pair
-    //Brute force (Basics of Brute-Force Matcher ) oder FLANN (Fast Library for Approximate Nearest Neighbors)
+    //Only execute if there is a previous image and there are more than 0 matches.
     if((!prevImageLeft.empty() && !prevImageRight.empty()) &&
         !descriptorLeft.empty() && !descriptorRight.empty()){
-        switch (matchingMethod) {
-        case 1:{
-            //Brute-Force Matcher
-            matchesLeft = bruteForceMatches(descriptorLeft, prevDescriptorLeft);
-            matchesRight = bruteForceMatches(descriptorRight, prevDescriptorRight);
 
-            selectedMatcher = "Brute-Force";
+//        std::thread t1match([&] {matchesLeft = featureMatchingMethod(descriptorLeft, selectedFeatureMatching);});
+//        std::thread t2match([&] {matchesRight = featureMatchingMethod(descriptorRight, selectedFeatureMatching);});
+//        t1match.join();
+//        t2match.join();
 
-            break;
-        }
-        case 2:{
-            //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
-            matchesLeft = flann(descriptorLeft, prevDescriptorLeft);
-            matchesRight = flann(descriptorRight, prevDescriptorRight);
+        matchesLeft = featureMatchingMethod(descriptorLeft, selectedFeatureMatching);
+        matchesRight = featureMatchingMethod(descriptorRight, selectedFeatureMatching);
 
-            selectedMatcher = "FLANN";
-
-            break;
-        }
-        default:
-            break;
-        }
-
-        std::cout << matchesLeft.size() << " Matches Left." << std::endl;
-        std::cout << matchesRight.size() << " Matches Right." << std::endl;
+        std::cout << matchesLeft.size() << " matches in left image" << std::endl;
+        std::cout << matchesRight.size() << " matches in right image" << std::endl;
     }
     else{
         std::cerr << "No Features could be detected and therefore no matches could be found." << std::endl;
@@ -326,6 +154,7 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
     prevDescriptorLeft = descriptorLeft;
     prevDescriptorRight = descriptorRight;
 
+    //Outputs
     std::cout << "Overall mean time complete: " << completeTimeAcc/iterations << "ms." << std::endl;
     std::cout << "Overall mean time for total feature detection: " << detectionTimeAcc/iterations << "ms." << std::endl;
     std::cout << "Overall mean time for total feature description: " << descriptionTimeAcc/iterations << "ms." << std::endl;
@@ -343,5 +172,173 @@ std::vector<cv::DMatch> ImageProcessor::flann(cv::Mat currentDescriptor, cv::Mat
     std::vector<cv::DMatch> matches;
     cv::Ptr<cv::FlannBasedMatcher> flann = cv::FlannBasedMatcher::create();
     flann->match(prevDescriptor, currentDescriptor, matches);
+    return matches;
+}
+
+std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection){
+    std::vector<cv::KeyPoint> keyPointVector;
+
+    //1. Feature detection for both stereo pair images
+    //1=ORB, 2=FAST, 3=BRISK, 4=AKAZE, 5=AGAST, 6=SIFT, 7=SURF
+    switch (selectedFeatureDetection) {
+    case 1:{
+        //ORB - Oriented FAST and Rotated BRIEF
+        cv::Ptr<cv::ORB> orb = cv::ORB::create();
+        orb->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "ORB";
+
+        break;
+    }
+    case 2:{
+        //FAST is only a feature detector and has no descriptors to compute.
+        cv::Ptr<cv::FastFeatureDetector> fast = cv::FastFeatureDetector::create();
+        fast->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "FAST";
+
+        break;
+    }
+    case 3:{
+        //BRISK
+        cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
+        brisk->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "BRISK";
+
+        break;
+    }
+    case 4:{
+        //AKAZE
+        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
+        akaze->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "AKAZE";
+
+        break;
+    }
+    case 5:{
+        //AGAST
+        cv::Ptr<cv::AgastFeatureDetector> agast = cv::AgastFeatureDetector::create();
+        agast->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "AGAST";
+
+        break;
+    }
+    case 6:{
+        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
+        sift->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "SIFT";
+
+        break;
+    }
+    case 7:{
+        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
+        surf->detect(remapped, keyPointVector, cv::Mat());
+
+        selectedDetector = "SURF";
+
+        break;
+    }
+    default:
+        break;
+    }
+
+    return keyPointVector;
+}
+
+cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<cv::KeyPoint> keyPointVector, int selectedFeatureDescription){
+    //1.2 Feature description for both images
+    //1=ORB, 2=BRIEF, 3=SIFT, 4=SURF, 5=BRISK, 6=AKAZE
+    cv::Mat descriptor;
+
+    switch (selectedFeatureDescription) {
+    case 1:{
+        //ORB - Oriented FAST and Rotated BRIEF
+        cv::Ptr<cv::ORB> orb = cv::ORB::create();
+        orb->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "ORB";
+
+        break;
+    }
+    case 2:{
+        //BRIEF (Binary Robust Independent Elementary) -> non free
+        cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> brief = cv::xfeatures2d::BriefDescriptorExtractor::create();
+        brief->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "BRIEF";
+
+        break;
+    }
+    case 3:{
+        //SIFT (Scale-invariant feature transform)
+        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
+        sift->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "SIFT";
+
+        break;
+    }
+    case 4:{
+        //SURF (Speeded Up Robust Features)
+        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
+        surf->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "SURF";
+
+        break;
+    }
+    case 5:{
+        //BRISK (Binary Robust Invariant Scalable Keypoints)
+        cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
+        brisk->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "BRISK";
+
+        break;
+    }
+    case 6:{
+        //Can Only be used with KAZE or AKAZE Keypoints
+        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
+        akaze->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "AKAZE";
+
+        break;
+    }
+    default:
+        break;
+    }
+
+    return descriptor;
+}
+
+std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor, int SelectedFeatureMatching){
+    std::vector<cv::DMatch> matches;
+
+    switch (SelectedFeatureMatching) {
+    case 1:{
+        //Brute-Force Matcher
+        matches = bruteForceMatches(descriptor, prevDescriptorLeft);
+
+        selectedMatcher = "Brute-Force";
+
+        break;
+    }
+    case 2:{
+        //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
+        matches = flann(descriptor, prevDescriptorLeft);
+
+        selectedMatcher = "FLANN";
+
+        break;
+    }
+    default:
+        break;
+    }
+
     return matches;
 }

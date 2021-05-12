@@ -9,6 +9,7 @@
 #include <QElapsedTimer>
 #include <iostream>
 #include <QImage>
+#include <thread>
 
 #include "imageset.h"
 
@@ -25,11 +26,20 @@ private:
     std::vector<cv::DMatch> bruteForceMatches(cv::Mat, cv::Mat);
     std::vector<cv::DMatch> flann(cv::Mat, cv::Mat);
 
+    std::vector<cv::KeyPoint> featureDetectionMethod(cv::Mat, int);
+    cv::Mat featureDescriptionMethod(cv::Mat, std::vector<cv::KeyPoint>, int);
+    std::vector<cv::DMatch> featureMatchingMethod(cv::Mat, int);
+
     ImageSet imageSet;
 
     cv::Mat prevImageLeft, prevImageRight;
     std::vector<cv::KeyPoint> prevKeypointsLeft, prevKeypointsRight;
     cv::Mat prevDescriptorLeft, prevDescriptorRight;
+
+    //select methods
+    std::string selectedDetector = "";
+    std::string selectedDescriptor = "";
+    std::string selectedMatcher = "";
 
     //mean time calculation
     int iterations = 0;
