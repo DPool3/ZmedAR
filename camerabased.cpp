@@ -122,12 +122,12 @@ void CameraBased::stop(){
     std::cout << "This equals to " << fpsPerSecond << " frames per second." << endl;
 
     double displayTimeAverage = displayTimeOverall/executionCounter;
-    double saveTimeAverage = saveTimeOverall/saveExecutionCounter;
+    //double saveTimeAverage = saveTimeOverall/saveExecutionCounter;
     double completeTimeAverage = completeTimeOverall/executionCounter;
 
     std::cout << "average fromat time was " << cameras.getAverageFormatTime() << " ms" << endl;
     std::cout << "average display time was " << displayTimeAverage << " ms" << endl;
-    std::cout << "average save time was " << saveTimeAverage << " ms" << endl;
+    //std::cout << "average save time was " << saveTimeAverage << " ms" << endl;
     std::cout << "average complete time was " << completeTimeAverage << " ms" << endl;
 
     //reset variables for framerate calculation
@@ -166,6 +166,7 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
         timer.start();
 
         imageProcessor.stereoVisualOdometry(imgLeft, imgRight);
+
         this->imageLeft = imgLeft;
         this->imageRight = imgRight;
 
