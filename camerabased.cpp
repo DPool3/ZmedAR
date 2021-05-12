@@ -149,8 +149,8 @@ void CameraBased::retrieveImages(){
             displayImages(this->imageLeft, this->imageRight);
         }
     }catch(std::exception& e){
-        DialogManager().callErrorDialog(e.what());
-        stop();
+//        DialogManager().callErrorDialog(e.what());
+//        stop();
         return;
     }
 
@@ -166,6 +166,8 @@ void CameraBased::displayImages(cv::Mat imgLeft, cv::Mat imgRight){
         timer.start();
 
         imageProcessor.stereoVisualOdometry(imgLeft, imgRight);
+        this->imageLeft = imgLeft;
+        this->imageRight = imgRight;
 
         QImage qLeft = imageProcessor.prepImageForDisplay(imgLeft);
         QImage qRight = imageProcessor.prepImageForDisplay(imgRight);
