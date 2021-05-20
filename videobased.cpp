@@ -8,7 +8,6 @@ VideoBased::VideoBased(QWidget *parent) :
     ui->setupUi(this);
 
     this->updateTimer = new QTimer(this);
-    this->updateTimer->setInterval(1000/videoManager.saveFps);
     connect(this->updateTimer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
@@ -70,6 +69,8 @@ void VideoBased::start(){
     saveEnteredPaths();
     try{
         videoManager.createVideoCapturePair(this->captureLeft, this->captureRight, this->videoPathLeft, this->videoPathRight);
+        this->playFps = captureLeft.get(cv::CAP_PROP_FPS);
+        this->updateTimer->setInterval(1000/this->playFps);
     }catch(const std::invalid_argument& e){
         DialogManager().callErrorDialog(e.what());
         stop();
@@ -103,8 +104,8 @@ void VideoBased::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
 
         //imageProcessor.cannyEdgeOnImagePair(imageLeft, imageRight);
 
-        QImage qLeft = imageProcessor.prepImageForDisplay(imageLeft);
-        QImage qRight = imageProcessor.prepImageForDisplay(imageRight);
+        QImage qLeft = imageProcessor.prepImageForDisplay(imageLeft, "BGR2RGB");
+        QImage qRight = imageProcessor.prepImageForDisplay(imageRight, "BGR2RGB");
 
         //Display on Input Label
         ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qLeft));

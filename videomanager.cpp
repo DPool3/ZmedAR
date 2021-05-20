@@ -23,21 +23,21 @@ VideoManager::VideoManager()
 }
 
 //Create VideoWriter
-void VideoManager::createVideoWriterPair(cv::VideoWriter &writerLeft, cv::VideoWriter &writerRight, std::string directoryNameAddition)
+void VideoManager::createVideoWriterPair(cv::VideoWriter &writerLeft, cv::VideoWriter &writerRight, std::string directoryNameAddition, int fps)
 {
     //create a new directory path with the current video save path, time and date and the directory name addition
     std::string videoDirectoryName = DirectoryManager().createVideoDirectory(directoryNameAddition);
 
     //create the save paths for both files and call the crateVideoWritermethod
-    createVideoWriter(writerLeft, videoDirectoryName + "/" + fileName + "_Links" + fileType);
-    createVideoWriter(writerRight, videoDirectoryName + "/" + fileName + "_Rechts" + fileType);
+    createVideoWriter(writerLeft, videoDirectoryName + "/" + fileName + "_Links" + fileType, fps);
+    createVideoWriter(writerRight, videoDirectoryName + "/" + fileName + "_Rechts" + fileType, fps);
 }
 
-void VideoManager::createVideoWriter(cv::VideoWriter & writer, std::string path)
+void VideoManager::createVideoWriter(cv::VideoWriter & writer, std::string path, int fps)
 {
     //get codec for video format (important lower case)
     int codec = cv::VideoWriter::fourcc('m','p','4','v');
-    cv::VideoWriter newWriter(path, codec, this->saveFps, this->frameSize);
+    cv::VideoWriter newWriter(path, codec, fps, this->frameSize);
     writer = newWriter;
 
 }

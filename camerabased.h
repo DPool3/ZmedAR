@@ -30,18 +30,30 @@ public:
 private slots:
     void on_startStopRecording_clicked();
     void on_showVideosCheckBox_toggled(bool checked);
-    void on_saveVideoCheckBox_toggled(bool checked);
 
     void retrieveImages();
     void displayImages(cv::Mat, cv::Mat);
 
+    void calcTimes();
+
     void saveImages();
+
+    void startSave();
+    void stopSave();
 
     void start();
     void stop();
 
     void lockUi();
     void releaseUi();
+
+    void on_normalVideoRadioButton_clicked();
+
+    void on_cannyEdgeRadioButton_clicked();
+
+    void on_keyPointsRadioButton_clicked();
+
+    void on_saveVideoButton_clicked();
 
 private:
     VideoManager videoManager;
@@ -60,8 +72,8 @@ private:
     cv::VideoWriter writerLeft;
     cv::VideoWriter writerRight;
 
-    cv::Mat imageLeft;
-    cv::Mat imageRight;
+    cv::Mat imageLeft, imageRight;
+    cv::Mat saveImageLeft, saveImageRight;
 
     //helper
     bool showVideo = false;
@@ -73,6 +85,10 @@ private:
     int displayTimeOverall = 0;
     int saveTimeOverall = 0;
     int completeTimeOverall = 0;
+
+    int errorCounter = 0;
+    int selectedDisplayMethod = -1;
+    int videoWriterFps = 30;
 
 signals:
     void displayNext();

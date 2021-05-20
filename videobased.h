@@ -59,6 +59,7 @@ private:
     FileSystem fsd;
 
     bool showVideo = false;
+    int playFps = 0;
 };
 
 #endif // VIDEOBASED_H

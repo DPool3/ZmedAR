@@ -59,17 +59,19 @@ bool pylonCamera::grabImages(cv::Mat &imgLeft, cv::Mat &imgRight){
     QElapsedTimer timer;
     timer.start();
     try{
-        cameras[0].RetrieveResult(15, pylonResultLeft, TimeoutHandling_ThrowException);
-        cameras[1].RetrieveResult(15, pylonResultRight, TimeoutHandling_ThrowException);
+        cameras[0].RetrieveResult(10, pylonResultLeft, TimeoutHandling_ThrowException);
+        cameras[1].RetrieveResult(10, pylonResultRight, TimeoutHandling_ThrowException);
 
-        if(cameras.IsGrabbing() && pylonResultLeft->GrabSucceeded() && pylonResultRight->GrabSucceeded()){
+//        std::cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+//        std::cout << "Cameras is grabbing: " << cameras.IsGrabbing() << endl;
+//        std::cout << "Result left grab succeeded: " << pylonResultLeft->GrabSucceeded() << endl;
+//        std::cout << "Result right grab succeeded: " << pylonResultRight->GrabSucceeded() << endl;
+//        std::cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+
+        if(pylonResultLeft->GrabSucceeded() && pylonResultRight->GrabSucceeded()){
 
             //convert images
             imageFormater(imgLeft, imgRight);
-
-//            if(createVideo){
-//                writeImages();
-//            }
 
             cout << "complete run of grabImages takes " << timer.elapsed() << "ms" << endl <<
                     "-------------------------------------------------" << endl;
@@ -132,72 +134,3 @@ double pylonCamera::getAverageSaveTime(){
         return 0;
     return saveTime / saveCounter;
 }
-
-//Video Functions
-//void pylonCamera::setCreateVideo(bool value){
-//    this->createVideo = value;
-//}
-
-//int pylonCamera::initVideoWriter(){
-//    // Check if CVideoWriter is supported and all DLLs are available.
-//    if(! CVideoWriter::IsSupported())
-//    {
-//        cout << "VideoWriter is not supported at the moment. Please install the pylon Supplementary Package for MPEG-4 which is available on the Basler website." << endl;
-//        // Releases all pylon resources.
-//        PylonTerminate();
-//        // Return with error code 1.
-//        return 1;
-//    }
-
-//    // The frame rate used for playing the video (playback frame rate).
-//    const int cFramesPerSecond = 30;
-
-//    // The quality used for compressing the video.
-//    const uint32_t cQuality = 100;
-
-//    // Get the required camera settings.
-//    CIntegerParameter width( cameras[0].GetNodeMap(), "Width");
-//    CIntegerParameter height( cameras[0].GetNodeMap(), "Height");
-//    CEnumParameter pixelFormat( cameras[0].GetNodeMap(), "PixelFormat");
-
-//    // Map the pixelType
-//    CPixelTypeMapper pixelTypeMapper(&pixelFormat);
-//    EPixelType pixelType = pixelTypeMapper.GetPylonPixelTypeFromNodeValue(pixelFormat.GetIntValue());
-
-//    // Set parameters before opening the video writer.
-//    videoWriterLeft.SetParameter(
-//        (uint32_t) width.GetValue(),
-//        (uint32_t) height.GetValue(),
-//        pixelType,
-//        cFramesPerSecond,
-//        cQuality );
-
-//    videoWriterRight.SetParameter(
-//        (uint32_t) width.GetValue(),
-//        (uint32_t) height.GetValue(),
-//        pixelType,
-//        cFramesPerSecond,
-//        cQuality );
-
-//    // Open the video writer.
-//    string leftSavePath, rightSavePath;
-//    helper.getCompleteVideoSavePath(leftSavePath, rightSavePath);
-//    videoWriterLeft.Open( String_t(leftSavePath.c_str()) );
-//    videoWriterRight.Open( String_t(rightSavePath.c_str()) );
-
-//    return 0;
-//}
-
-//void pylonCamera::closeVideoWriter(){
-//    videoWriterLeft.Close();
-//    videoWriterRight.Close();
-//}
-
-//void pylonCamera::writeImages(){
-//    QElapsedTimer timer;
-//    timer.start();
-//    videoWriterLeft.Add(pylonResultLeft);
-//    videoWriterRight.Add(pylonResultRight);
-//    saveTime += timer.elapsed();
-//    saveCounter++;
-//}

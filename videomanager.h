@@ -14,7 +14,7 @@ public:
     VideoManager();
 
     //VideoWirter
-    void createVideoWriterPair(cv::VideoWriter & writerLeft, cv::VideoWriter & writerRight, std::string directoryNameAddition);
+    void createVideoWriterPair(cv::VideoWriter & writerLeft, cv::VideoWriter & writerRight, std::string directoryNameAddition, int fps);
     void releaseVideoWriterPair(cv::VideoWriter & writerLeft, cv::VideoWriter & writerRight);
 
     //VideoCapture
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    void createVideoWriter(cv::VideoWriter & writer, std::string path);
+    void createVideoWriter(cv::VideoWriter & writer, std::string path, int fps);
     void releaseVideoWriter(cv::VideoWriter & writer);
 
     void releaseVideoCapture(cv::VideoCapture & capture);

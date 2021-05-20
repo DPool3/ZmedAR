@@ -5,41 +5,54 @@ ImageProcessor::ImageProcessor()
     imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
 }
 
-QImage ImageProcessor::prepImageForDisplay(cv::Mat & image){
+QImage ImageProcessor::prepImageForDisplay(cv::Mat& image, std::string format){
+    QImage returnImage;
+
     //Resize Images
     cv::resize(image, image, cv::Size(480, 320), 0, 0);
 
-    //Change to RGB format & save it in global Mat
-    cv::cvtColor(image, image, CV_BGR2RGB);
+    if(format == "BGR2RGB"){
+        //Change to RGB format & save it in global Mat
+        cv::cvtColor(image, image, CV_BGR2RGB);
+        //Convert to QImage
+        QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_RGB888);
+        returnImage = qimg;
+    }
+    else if("GRAY"){
+        //Convert to QImage
+        QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_Grayscale8);
+        returnImage = qimg;
+    }
 
-    //Convert to QImage
-    QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_RGB888);
-
-    return qimg;
+    return returnImage;
 }
 
 void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRight){
-    cv::Mat imgLeftGray, imgRightGray, detectedEdgesLeft, detectedEdgesRight;
-    int lowThreshhold = 10;
-    const int ratio = 3;
+    cv::Mat imgLeftGray, imgRightGray;
+    cv::Mat imgBlurLeft, imgBlurRight;
+    cv::Mat detectedEdgesLeft, detectedEdgesRight;
+    int lowThreshhold = 50;
+    int highThreshold = 110;
     const int kernel_size = 3;
 
-    cv::cvtColor(imageLeft, imgLeftGray, CV_BGR2GRAY);
-    cv::cvtColor(imageRight, imgRightGray, CV_BGR2GRAY);
+    cv::Mat tempLeft = imageLeft;
+    cv::Mat tempRight = imageRight;
 
-    cv::blur(imgLeftGray, detectedEdgesLeft, cv::Size(3,3));
-    cv::blur(imgRightGray, detectedEdgesRight, cv::Size(3,3));
+    cv::cvtColor(tempLeft, imgLeftGray, CV_BGR2GRAY);
+    cv::cvtColor(tempRight, imgRightGray, CV_BGR2GRAY);
 
-    cv::Canny(detectedEdgesLeft, detectedEdgesLeft, lowThreshhold, lowThreshhold*ratio, kernel_size);
-    cv::Canny(detectedEdgesRight, detectedEdgesRight, lowThreshhold, lowThreshhold*ratio, kernel_size);
+    cv::GaussianBlur(imgLeftGray,   // input image
+          imgBlurLeft,              // output image
+          cv::Size(3, 3),           // smoothing window width and height in pixels
+          2.5);                     // sigma value, determines how much the image will be blurred
 
-    //copy edges in cv mat
-    cv::Mat destLeft, destRight;
-    imageLeft.copyTo(destLeft, detectedEdgesLeft);
-    imageRight.copyTo(destRight, detectedEdgesRight);
+    cv::GaussianBlur(imgRightGray, imgBlurRight, cv::Size(3,3), 2.5);
 
-    imageLeft = destLeft;
-    imageRight = destRight;
+    cv::Canny(imgBlurLeft, detectedEdgesLeft, lowThreshhold, highThreshold, kernel_size);
+    cv::Canny(imgBlurRight, detectedEdgesRight, lowThreshhold, highThreshold, kernel_size);
+
+    imageLeft = detectedEdgesLeft;
+    imageRight = detectedEdgesRight;
 }
 
 void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRight){
@@ -64,18 +77,19 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
 //    cv::Mat grayL, grayR;
     cv::Mat remappedL, remappedR;
     cv::Mat descriptorLeft, descriptorRight;
-    std::vector<cv::DMatch> matchesLeft, matchesRight;
+    std::vector<cv::DMatch> matchesLeftRight, matchesLeftConsecutive, matchesRightConsecutive;
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
 
     //color conversion rgb to gray for faster detection
 //    cv::cvtColor(imageLeft, grayL, CV_RGB2GRAY);
 //    cv::cvtColor(imageRight, grayR, CV_RGB2GRAY);
 
-    //remap images to remove distortion and to rectify
+    //1. remap images to remove distortion and to rectify
     cv::remap(imageLeft, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imageRight, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
 
-    //1. Feature Detection
+    //2. Feature Detection & Description
+    //Feature Detection
     QElapsedTimer detectorTimer;
     detectorTimer.start();
 
@@ -90,13 +104,13 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
     double detectionTime = detectorTimer.elapsed();
     detectionTimeAcc = detectionTimeAcc + detectionTime;
 
-    //1.1 (Optional) draw matches
+    //(Optional) draw matches
     cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
     cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
     imageLeft = remappedL;
     imageRight = remappedR;
 
-    //1.2 Feature Description
+    //Feature Description
     QElapsedTimer descriptorTimer;
     descriptorTimer.start();
 
@@ -111,37 +125,41 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
     double descriptionTime = descriptorTimer.elapsed();
     descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 
-    //2. Feature Matching
+    //3. Feature Matching left and right
     QElapsedTimer matchingTimer;
     matchingTimer.start();
 
-    //Only execute if there is a previous image and there are more than 0 matches.
-    if((!prevImageLeft.empty() && !prevImageRight.empty()) &&
-        !descriptorLeft.empty() && !descriptorRight.empty()){
-
-//        std::thread t1match([&] {matchesLeft = featureMatchingMethod(descriptorLeft, selectedFeatureMatching);});
-//        std::thread t2match([&] {matchesRight = featureMatchingMethod(descriptorRight, selectedFeatureMatching);});
-//        t1match.join();
-//        t2match.join();
-
-        matchesLeft = featureMatchingMethod(descriptorLeft, selectedFeatureMatching);
-        matchesRight = featureMatchingMethod(descriptorRight, selectedFeatureMatching);
-
-        std::cout << matchesLeft.size() << " matches in left image" << std::endl;
-        std::cout << matchesRight.size() << " matches in right image" << std::endl;
+    if(!descriptorLeft.empty() && !descriptorRight.empty()){
+        //match current images in time t
+        matchesLeftRight = featureMatchingMethod(descriptorLeft, descriptorRight, selectedFeatureMatching);
+        std::cout << matchesLeftRight.size() << " matches in images in t" << std::endl;
     }
     else{
-        std::cerr << "No Features could be detected and therefore no matches could be found." << std::endl;
+        std::cerr << "No Features could be detected in atleast one image and therefore no matches could be found." << std::endl;
     }
 
     double matchingTime = matchingTimer.elapsed();
     matchingTimeAcc = matchingTimeAcc + matchingTime;
 
-    //3. Estimating the relative pose between the left images and finding the inlier matches
+    //4. Feature Matching consecutive
+
+    //Only execute if there is a previous image
+//    if((!prevImageLeft.empty() && !prevImageRight.empty()) && (!descriptorLeft.empty() && !descriptorRight.empty())){
+
+//        matchesLeftConsecutive = featureMatchingMethod(descriptorLeft, prevDescriptorLeft, selectedFeatureMatching);
+//        matchesRightConsecutive = featureMatchingMethod(descriptorRight, prevDescriptorRight, selectedFeatureMatching);
+
+//        std::cout << matchesLeftConsecutive.size() << " matches in left image in t & t-1" << std::endl;
+//        std::cout << matchesRightConsecutive.size() << " matches in right image in t & t-1" << std::endl;
+//    }
+
+    //5. Optimization
+
+    //4. Estimating the relative pose between the left images and finding the inlier matches
     //      -> RANSAC
-    //4. Determining the motion type and direction of the camera
+    //5. Determining the motion type and direction of the camera
     //      -> Kalman filter
-    //5. Finding the exact translation motion of the camera
+    //6. Finding the exact translation motion of the camera
 
     double completeTime = totalImageMatchingTimer.elapsed();
     completeTimeAcc = completeTimeAcc + completeTime;
@@ -161,17 +179,17 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRi
     std::cout << "Overall mean time for total image matching: " << matchingTimeAcc/iterations << "ms." << std::endl;
 }
 
-std::vector<cv::DMatch>  ImageProcessor::bruteForceMatches(cv::Mat currentDescriptor, cv::Mat prevDescriptor){
+std::vector<cv::DMatch>  ImageProcessor::bruteForceMatches(cv::Mat descriptorOne, cv::Mat descriptorTwo){
     std::vector<cv::DMatch> matches;
     cv::Ptr<cv::BFMatcher> bfMatcher = cv::BFMatcher::create();
-    bfMatcher->match(prevDescriptor, currentDescriptor, matches);
+    bfMatcher->match(descriptorTwo, descriptorOne, matches);
     return matches;
 }
 
-std::vector<cv::DMatch> ImageProcessor::flann(cv::Mat currentDescriptor, cv::Mat prevDescriptor){
+std::vector<cv::DMatch> ImageProcessor::flann(cv::Mat descriptorOne, cv::Mat descriptorTwo){
     std::vector<cv::DMatch> matches;
     cv::Ptr<cv::FlannBasedMatcher> flann = cv::FlannBasedMatcher::create();
-    flann->match(prevDescriptor, currentDescriptor, matches);
+    flann->match(descriptorTwo, descriptorOne, matches);
     return matches;
 }
 
@@ -316,13 +334,13 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
     return descriptor;
 }
 
-std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor, int SelectedFeatureMatching){
+std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int SelectedFeatureMatching){
     std::vector<cv::DMatch> matches;
 
     switch (SelectedFeatureMatching) {
     case 1:{
         //Brute-Force Matcher
-        matches = bruteForceMatches(descriptor, prevDescriptorLeft);
+        matches = bruteForceMatches(descriptorOne, descriptorTwo);
 
         selectedMatcher = "Brute-Force";
 
@@ -330,7 +348,7 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
     }
     case 2:{
         //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
-        matches = flann(descriptor, prevDescriptorLeft);
+        matches = flann(descriptorOne, descriptorTwo);
 
         selectedMatcher = "FLANN";
 

@@ -18,7 +18,7 @@ class ImageProcessor
 public:
     ImageProcessor();
 
-    QImage prepImageForDisplay(cv::Mat&);
+    QImage prepImageForDisplay(cv::Mat&, std::string);
     void cannyEdgeOnImagePair(cv::Mat&, cv::Mat&);
     void stereoVisualOdometry(cv::Mat&, cv::Mat&);
 
@@ -28,7 +28,7 @@ private:
 
     std::vector<cv::KeyPoint> featureDetectionMethod(cv::Mat, int);
     cv::Mat featureDescriptionMethod(cv::Mat, std::vector<cv::KeyPoint>, int);
-    std::vector<cv::DMatch> featureMatchingMethod(cv::Mat, int);
+    std::vector<cv::DMatch> featureMatchingMethod(cv::Mat, cv::Mat, int);
 
     ImageSet imageSet;
 
