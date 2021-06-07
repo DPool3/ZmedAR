@@ -102,10 +102,8 @@ void VideoBased::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
     if(this->showVideo){
         //Resize Images
 
-        //imageProcessor.cannyEdgeOnImagePair(imageLeft, imageRight);
-
-        QImage qLeft = imageProcessor.prepImageForDisplay(imageLeft, "BGR2RGB");
-        QImage qRight = imageProcessor.prepImageForDisplay(imageRight, "BGR2RGB");
+        QImage qLeft = imageProcessor.prepImageForDisplay(imageLeft);
+        QImage qRight = imageProcessor.prepImageForDisplay(imageRight);
 
         //Display on Input Label
         ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qLeft));

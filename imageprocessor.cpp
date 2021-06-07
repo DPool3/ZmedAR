@@ -5,24 +5,18 @@ ImageProcessor::ImageProcessor()
     imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
 }
 
-QImage ImageProcessor::prepImageForDisplay(cv::Mat& image, std::string format){
+QImage ImageProcessor::prepImageForDisplay(cv::Mat& image){
     QImage returnImage;
 
     //Resize Images
     cv::resize(image, image, cv::Size(480, 320), 0, 0);
 
-    if(format == "BGR2RGB"){
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(image, image, CV_BGR2RGB);
-        //Convert to QImage
-        QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_RGB888);
-        returnImage = qimg;
-    }
-    else if("GRAY"){
-        //Convert to QImage
-        QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_Grayscale8);
-        returnImage = qimg;
-    }
+    //Change to RGB format & save it in global Mat
+    cv::cvtColor(image, image, CV_BGR2RGB);
+
+    //Convert to QImage
+    QImage qimg((const unsigned char*) image.data, image.cols, image.rows, QImage::Format_RGB888);
+    returnImage = qimg;
 
     return returnImage;
 }

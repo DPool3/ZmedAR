@@ -4,7 +4,7 @@
 #include <QMainWindow>
 
 #include "videobased.h"
-#include "camerabased.h"
+#include "camerabasedview.h"
 #include "imagesetdialog.h"
 #include "stereocalibration.h"
 

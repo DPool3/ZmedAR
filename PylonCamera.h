@@ -27,6 +27,11 @@ public:
     double getAverageFormatTime();
     double getAverageSaveTime();
 
+    //camera settings
+    float exposureValue = 10000;
+    float brightnessValue = 0.1;
+    float saturationValue = 1;
+
 private:
     //image format
     void imageFormater(cv::Mat&, cv::Mat&);

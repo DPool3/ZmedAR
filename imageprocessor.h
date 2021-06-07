@@ -18,7 +18,7 @@ class ImageProcessor
 public:
     ImageProcessor();
 
-    QImage prepImageForDisplay(cv::Mat&, std::string);
+    QImage prepImageForDisplay(cv::Mat&);
     void cannyEdgeOnImagePair(cv::Mat&, cv::Mat&);
     void stereoVisualOdometry(cv::Mat&, cv::Mat&);
 

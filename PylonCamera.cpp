@@ -25,13 +25,18 @@ void pylonCamera::initCameras(){
     cout << "Number necessary cameras " << cameras.GetSize() << endl;
     cout << "Number devices found " << devices.size() << endl;
 
-    // Create and attach all Pylon Devices.
-    for ( size_t i = 0; i < cameras.GetSize(); ++i)
-    {
-        cout << "checking device at " << i << "." << endl;
-        IPylonDevice *device = tlFactory.CreateDevice(devices[i]);
-        cameras[i].Attach(device);
-        cout << "Using device " << cameras[i].GetDeviceInfo().GetModelName() << endl;
+    try{
+        // Create and attach all Pylon Devices.
+        for ( size_t i = 0; i < cameras.GetSize(); ++i)
+        {
+            cout << "checking device at " << i << "." << endl;
+            IPylonDevice *device = tlFactory.CreateDevice(devices[i]);
+            cameras[i].Attach(device);
+            cout << "Using device " << cameras[i].GetDeviceInfo().GetModelName() << endl;
+        }
+    }catch(const GenericException &e){
+        std::string exceptionMsg = e.what();
+        throw runtime_error(exceptionMsg);
     }
 
     cameras.Open();
@@ -39,12 +44,14 @@ void pylonCamera::initCameras(){
     GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
     CBooleanParameter(nodemap1, "ReverseX").SetValue(true);
     CBooleanParameter(nodemap1, "ReverseY").SetValue(true);
-    CFloatParameter(nodemap1, "ExposureTime").SetValue(10000.0);
+    CFloatParameter(nodemap1, "ExposureTime").SetValue(10000);
     CFloatParameter(nodemap1, "BslBrightness").SetValue(0.1);
+    //CFloatParameter(nodemap1, "BslSaturationValue").SetValue(saturationValue);
 
     GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
-    CFloatParameter(nodemap0, "ExposureTime").SetValue(10000.0);
+    CFloatParameter(nodemap0, "ExposureTime").SetValue(10000);
     CFloatParameter(nodemap0, "BslBrightness").SetValue(0.1);
+    //CFloatParameter(nodemap0, "BslSaturationValue").SetValue(saturationValue);
 }
 
 void pylonCamera::startGrabbing(){
@@ -91,7 +98,6 @@ bool pylonCamera::grabImages(cv::Mat &imgLeft, cv::Mat &imgRight){
     }
 }
 
-//format functions
 void pylonCamera::imageFormater(cv::Mat &imgLeft, cv::Mat &imgRight){
     QElapsedTimer timer;
     timer.start();
@@ -116,7 +122,6 @@ cv::Mat pylonCamera::imageFormaterRight(){
     return imgRight;
 }
 
-//output functions
 double pylonCamera::getAverageExecutionTime(){
     if(completeGrabAndFormat == 0 || executionCounter == 0)
         return 0;

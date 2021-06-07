@@ -40,7 +40,7 @@ void MainWindow::on_videoBased_button_clicked()
 
 void MainWindow::on_cameraBased_button_clicked()
 {
-    CameraBased cbd;
+    CameraBasedView cbd;
     cbd.setModal(true);
     cbd.exec();
 }
