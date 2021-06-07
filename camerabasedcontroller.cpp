@@ -128,3 +128,40 @@ bool CameraBasedController::isRecording(){
 bool CameraBasedController::isRunning(){
     return this->cameraImageTimer->isActive();
 }
+
+//start tracking if selected. Simultaniously with image processing
+//init flags and start in CameraImageTimer
+//dont forget to include header file of ViveTracker class
+//check if other includes might be needed later while testing
+//InitFlags flags;
+//flags.printCoords = true;
+//flags.printRotation = true;
+//flags.printTrack = false;
+//flags.printAnalog = false;
+//flags.printBEvents = false;
+//flags.printEvents = false;
+//flags.printSetIds = false;
+//flags.pipeCoords = false;
+
+//if(flags.pipeCoords)
+//{
+//    flags.printCoords = false;
+//    flags.printAnalog = false;
+//    flags.printEvents = false;
+//    flags.printSetIds = false;
+//    flags.printBEvents = false;
+//    flags.printTrack = false;
+//    flags.printRotation = false;
+//}
+// Create a new ViveTracking instance and parse as needed
+//ViveTracking* viveTracking = new ViveTracking(flags);
+//if (viveTracking) //null check
+//{
+//    //create and open file to write in
+//    while (true)
+//    {
+//        viveTracking->RunProcedure();
+//    }
+//    delete viveTracking;
+//}
+//return EXIT_SUCCESS;
