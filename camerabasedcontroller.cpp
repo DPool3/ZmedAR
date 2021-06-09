@@ -38,7 +38,6 @@ void CameraBasedController::startStopCameraBasedProcess(){
 
 void CameraBasedController::startController(){
     //Cameras initialisieren
-    //Initialize cameras
     try{
         cameras.initCameras();
     }
@@ -116,29 +115,8 @@ bool CameraBasedController::getProcessedImages(QImage & qImageLeft, QImage & qIm
     this->imageRight = this->origRight.clone();
     if(!(this->imageLeft.empty() && this->imageRight.empty())){
         try{
-//            cv::Mat tempLeft = this->imageLeft.clone();
-//            cv::Mat tempRight = this->imageRight.clone();
-
-//            cv::resize(tempLeft, tempLeft, cv::Size(480, 320), 0, 0);
-//            cv::resize(tempRight, tempRight, cv::Size(480, 320), 0, 0);
-
-//            cv::cvtColor(tempLeft, tempLeft, CV_BGR2RGB);
-//            cv::cvtColor(tempRight, tempRight, CV_BGR2RGB);
-
-//            QImage ql((const unsigned char*) tempLeft.data, tempLeft.cols, tempLeft.rows, QImage::Format_RGB888);
-//            QImage qr((const unsigned char*) tempRight.data, tempRight.cols, tempRight.rows, QImage::Format_RGB888);
-
-            cv::resize(this->imageLeft, this->imageLeft, cv::Size(480, 320), 0, 0);
-            cv::resize(this->imageRight, this->imageRight, cv::Size(480, 320), 0, 0);
-
-            cv::cvtColor(this->imageLeft, this->imageLeft, CV_BGR2RGB);
-            cv::cvtColor(this->imageRight, this->imageRight, CV_BGR2RGB);
-
-            QImage ql((const unsigned char*) this->imageLeft.data, this->imageLeft.cols, this->imageLeft.rows, QImage::Format_RGB888);
-            QImage qr((const unsigned char*) this->imageRight.data, this->imageRight.cols, this->imageRight.rows, QImage::Format_RGB888);
-
-            qImageLeft = ql;
-            qImageRight = qr;
+            qImageLeft = imageProcessor.prepImageForDisplay(this->imageLeft);
+            qImageRight = imageProcessor.prepImageForDisplay(this->imageRight);
 
             return true;
         }catch(std::exception& e){
