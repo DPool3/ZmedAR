@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
+
+#include "directorymanager.h"
+
 using namespace vr;
 
 struct _InitFlags
@@ -34,7 +37,13 @@ private:
 
     HmdQuaternion_t ProcessRotation(HmdQuaternion_t quat);
 
+    void createNewTrackingFile();
+
+    void addLineToFile(std::string);
+
     InitFlags flags;
+
+    std::ofstream trackingFile;
 
 public:
 

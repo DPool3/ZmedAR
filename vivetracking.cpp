@@ -9,6 +9,8 @@ ViveTracking::~ViveTracking()
         VR_Shutdown();
         vr_pointer = NULL;
     }
+
+    this->trackingFile.close();
 }
 
 // Constructor for the LighthouseTracking object
@@ -19,6 +21,9 @@ ViveTracking::ViveTracking(InitFlags f)
     trackBuf = new char[1024];
     rotBuf = new char[1024];
     trackers = new TrackerData[16];
+
+    // Create new File for Tracking
+    createNewTrackingFile();
 
     // Definition of the init error
     EVRInitError eError = VRInitError_None;
@@ -264,15 +269,22 @@ void ViveTracking::ParseTrackingFrame()
     }
 
     TrackerCoords();
-    if(flags.printCoords)
-        printf("\nCOORDS-- %s",coordsBuf);
-    if(flags.printTrack)
-        printf("\nTRACK-- %s",trackBuf);
-    if(flags.printRotation)
-        printf("\nROT-- %s",rotBuf);
 
-    printf("\n----------------------------------------------------------------------------------------------");
-    //ToDo: write to file here
+    std::string coords = coordsBuf;
+    std::string rot = rotBuf;
+
+    if(flags.printCoords)
+        std::cout << "COORDS-- " << coordsBuf << std::endl;
+
+    if(flags.printRotation)
+        std::cout << "ROT-- " << rotBuf << std::endl;
+
+//    if(flags.printTrack)
+//        printf("\nTRACK-- %s",trackBuf);
+
+    std::cout << "--------------------------------------------------------" << std::endl;
+
+     addLineToFile(coords + rot);
 }
 
 void ViveTracking::TrackerCoords()
@@ -297,9 +309,12 @@ void ViveTracking::TrackerCoords()
         rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
         pT->isValid =trackedDevicePose.bPoseIsValid;
 
-        sprintf(coordsBuf,"%s T%d: %-28.28s",coordsBuf, i, getPoseXYZString(trackedDevicePose,0));
-        sprintf(trackBuf,"%s T%d: %-25.25s %-7.7s" , trackBuf, i, getEnglishTrackingResultForPose(trackedDevicePose), getEnglishPoseValidity(trackedDevicePose));
-        sprintf(rotBuf,"%s T%d: qw:%.2f qx:%.2f qy:%.2f qz:%.2f",rotBuf,i,rot.w,rot.x,rot.y,rot.z);
+        sprintf(coordsBuf,"%sT%d, %s",coordsBuf, i, getPoseXYZString(trackedDevicePose,0));
+
+        //qw, qx, qy, qz
+        sprintf(rotBuf,"%sRot%d, %.2f, %.2f, %.2f, %.2f, ",rotBuf, i,rot.w,rot.x,rot.y,rot.z);
+
+//        sprintf(trackBuf,"%s T%d: %-25.25s %-7.7s" , trackBuf, i, getEnglishTrackingResultForPose(trackedDevicePose), getEnglishPoseValidity(trackedDevicePose));
     }
 }
 
@@ -345,7 +360,8 @@ char* ViveTracking::getPoseXYZString(TrackedDevicePose_t pose, int hand)
     HmdVector3_t pos = GetPosition(pose.mDeviceToAbsoluteTracking);
     char* cB = new char[50];
     if(pose.bPoseIsValid)
-        sprintf(cB, "x:%.3f y:%.3f z:%.3f",pos.v[0], pos.v[1], pos.v[2]);
+        //x, y, z
+        sprintf(cB, "%.3f, %.3f, %.3f, ",pos.v[0], pos.v[1], pos.v[2]);
     else
         sprintf(cB, "            INVALID");
     if(flags.pipeCoords)
@@ -357,3 +373,12 @@ char* ViveTracking::getPoseXYZString(TrackedDevicePose_t pose, int hand)
     return cB;
 }
 
+void ViveTracking::createNewTrackingFile(){
+    std::string fileName = DirectoryManager().getCurrentDateAsString();
+    std::string fileType = ".txt";
+    this->trackingFile.open("/home/daniel/ZAR/trackingFiles/" + fileName + fileType, std::ios_base::app);
+}
+
+void ViveTracking::addLineToFile(std::string lineText){
+    this->trackingFile << lineText << std::endl;
+}
