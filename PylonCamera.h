@@ -27,10 +27,12 @@ public:
     double getAverageFormatTime();
     double getAverageSaveTime();
 
+    void setExposure(float);
+    void setBrightness(float);
+    void setSaturation(float);
+    void setContrast(float);
+
     //camera settings
-    float exposureValue = 10000;
-    float brightnessValue = 0.1;
-    float saturationValue = 1;
 
 private:
     //image format

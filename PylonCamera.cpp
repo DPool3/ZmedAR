@@ -44,14 +44,34 @@ void pylonCamera::initCameras(){
     GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
     CBooleanParameter(nodemap1, "ReverseX").SetValue(true);
     CBooleanParameter(nodemap1, "ReverseY").SetValue(true);
-    CFloatParameter(nodemap1, "ExposureTime").SetValue(10000);
-    CFloatParameter(nodemap1, "BslBrightness").SetValue(0.1);
-    //CFloatParameter(nodemap1, "BslSaturationValue").SetValue(saturationValue);
+}
 
+void pylonCamera::setBrightness(float newValue){
     GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
-    CFloatParameter(nodemap0, "ExposureTime").SetValue(10000);
-    CFloatParameter(nodemap0, "BslBrightness").SetValue(0.1);
-    //CFloatParameter(nodemap0, "BslSaturationValue").SetValue(saturationValue);
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
+    CFloatParameter(nodemap0, "BslBrightness").SetValue(newValue);
+    CFloatParameter(nodemap1, "BslBrightness").SetValue(newValue);
+}
+
+void pylonCamera::setExposure(float newValue){
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
+    CFloatParameter(nodemap0, "ExposureTime").SetValue(newValue);
+    CFloatParameter(nodemap1, "ExposureTime").SetValue(newValue);
+}
+
+void pylonCamera::setContrast(float newValue){
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
+    CFloatParameter(nodemap0, "BslContrast").SetValue(newValue);
+    CFloatParameter(nodemap1, "BslContrast").SetValue(newValue);
+}
+
+void pylonCamera::setSaturation(float newValue){
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
+    CFloatParameter(nodemap0, "BslSaturationValue").SetValue(newValue);
+    CFloatParameter(nodemap1, "BslSaturationValue").SetValue(newValue);
 }
 
 void pylonCamera::startGrabbing(){
