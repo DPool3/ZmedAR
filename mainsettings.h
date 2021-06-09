@@ -52,7 +52,7 @@ private:
     std::string videosPath = "/home/daniel/ZAR/Videos";
     std::string rootPath = "/home/daniel/ZAR";
     cv::Size framesize = cv::Size(1920,1200);
-    int fps = 75;
+    int fps = 60;
     int saveFps = 30;
 
     std::string videoFileName = "video";
