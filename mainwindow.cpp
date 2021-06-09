@@ -33,7 +33,7 @@ void MainWindow::on_imageSet_button_clicked()
 
 void MainWindow::on_videoBased_button_clicked()
 {
-    VideoBased vbd;
+    VideoBasedView vbd;
     vbd.setModal(true);
     vbd.exec();
 }
