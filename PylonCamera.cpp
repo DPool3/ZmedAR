@@ -40,10 +40,6 @@ void pylonCamera::initCameras(){
     }
 
     cameras.Open();
-
-    GenApi_3_1_Basler_pylon::INodeMap& nodemap1 = cameras[1].GetNodeMap();
-    CBooleanParameter(nodemap1, "ReverseX").SetValue(true);
-    CBooleanParameter(nodemap1, "ReverseY").SetValue(true);
 }
 
 void pylonCamera::setBrightness(float newValue){
