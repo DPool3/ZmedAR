@@ -20,7 +20,7 @@ public:
 
     QImage prepImageForDisplay(cv::Mat&);
     void cannyEdgeOnImagePair(cv::Mat&, cv::Mat&);
-    void stereoVisualOdometry(cv::Mat&, cv::Mat&);
+    void stereoVisualOdometry(cv::Mat, cv::Mat);
 
 private:
     std::vector<cv::DMatch> bruteForceMatches(cv::Mat, cv::Mat);

@@ -49,7 +49,7 @@ void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRig
     imageRight = detectedEdgesRight;
 }
 
-void ImageProcessor::stereoVisualOdometry(cv::Mat & imageLeft, cv::Mat & imageRight){
+void ImageProcessor::stereoVisualOdometry(cv::Mat imageLeft, cv::Mat imageRight){
     QElapsedTimer totalImageMatchingTimer;
     totalImageMatchingTimer.start();
 
