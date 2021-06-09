@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QTimer>
+#include <QElapsedTimer>
 
 #include "camerabasedcontroller.h"
 #include "videomanager.h"
@@ -20,21 +21,30 @@ public:
     ~CameraBasedView();
 
 private slots:
-    void on_showVideosCheckBox_toggled(bool checked);
-
-    void on_saveVideoButton_clicked();
 
     void on_startStopRecording_clicked();
 
-    void aquireProcessedImages();
+    bool aquireProcessedImages();
 
     void displayImages();
 
-    void on_doubleSpinBox_valueChanged(double arg1);
+    void on_showVideosCheckBox_toggled(bool checked);
 
-    void on_doubleSpinBox_2_valueChanged(double arg1);
+    void on_viveTracking_Checkbox_toggled(bool checked);
 
-    void on_doubleSpinBox_3_valueChanged(double arg1);
+    void on_cameraTracking_CheckBox_toggled(bool checked);
+
+    void on_saveVideo_CheckBox_toggled(bool checked);
+
+    void on_brightness_button_clicked();
+
+    void on_exposure_button_clicked();
+
+    void on_contrast_button_clicked();
+
+    void on_saturation_button_clicked();
+
+    void lockAndReleaseUI(bool);
 
 private:
     Ui::CameraBasedView *ui;
@@ -51,6 +61,9 @@ private:
 
     QImage imageLeft;
     QImage imageRight;
+
+    QElapsedTimer timer;
+    int iterationCounter = 0;
 };
 
 #endif // CAMERABASEDUI_H
