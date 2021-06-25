@@ -274,10 +274,10 @@ void ViveTracking::ParseTrackingFrame()
     std::string rot = rotBuf;
 
     if(flags.printCoords)
-        std::cout << "COORDS-- " << coordsBuf << std::endl;
+        std::cout << coordsBuf << std::endl;
 
     if(flags.printRotation)
-        std::cout << "ROT-- " << rotBuf << std::endl;
+        std::cout << rotBuf << std::endl;
 
 //    if(flags.printTrack)
 //        printf("\nTRACK-- %s",trackBuf);
@@ -300,8 +300,12 @@ void ViveTracking::TrackerCoords()
     {
         TrackerData* pT = &(trackers[i]);
 
-        if (pT->deviceId < 0 ||
-            !vr_pointer->IsTrackedDeviceConnected(pT->deviceId) )
+        if (i == 0 && pT->deviceId == -1){
+            std::string errMsg = "Es konnten Keine HTC VIVE Tracker gefunden werden.\n";
+            throw std::runtime_error(errMsg);
+        }
+
+        if (pT->deviceId < 0 || !vr_pointer->IsTrackedDeviceConnected(pT->deviceId) )
             continue;
 
         vr_pointer->GetControllerStateWithPose(TrackingUniverseStanding, pT->deviceId, &controllerState, sizeof(controllerState), &trackedDevicePose);
