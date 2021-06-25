@@ -84,5 +84,9 @@ void VideoManager::saveImages(cv::Mat imgLeft, cv::Mat imgRight, cv::VideoWriter
 }
 
 void VideoManager::saveImage(cv::Mat img, cv::VideoWriter writer){
-    writer.write(img);
+    try{
+        writer.write(img);
+    }catch(std::exception& e){
+        std::cerr << "error writing image to video file." << std::endl;
+    }
 }
