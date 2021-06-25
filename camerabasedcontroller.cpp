@@ -88,6 +88,9 @@ void CameraBasedController::stopController(){
         cameras.stopGrabbing();
     }
 
+    if(useViveTracking)
+        viveTracking->~ViveTracking();
+
 }
 
 void CameraBasedController::startRecording(){
@@ -113,6 +116,7 @@ void CameraBasedController::startStopRecording(){
 bool CameraBasedController::getProcessedImages(QImage & qImageLeft, QImage & qImageRight){
     this->imageLeft = this->origLeft.clone();
     this->imageRight = this->origRight.clone();
+
     if(!(this->imageLeft.empty() && this->imageRight.empty())){
         try{
             qImageLeft = imageProcessor.prepImageForDisplay(this->imageLeft);
@@ -129,23 +133,23 @@ bool CameraBasedController::getProcessedImages(QImage & qImageLeft, QImage & qIm
 
 bool CameraBasedController::getCameraImages(){
     try{
-        if(!cameras.grabImages(origLeft, origRight)){
+        if(!cameras.grabImages(origRight, origLeft)){
             std::cerr << "No Image could be grabed" << std::endl;
             return false;
         }
         //images for display
-        this->imageLeft = origLeft.clone();
-        this->imageRight = origRight.clone();
+//        this->imageLeft = origLeft.clone();
+//        this->imageRight = origRight.clone();
         //images for saving
         this->imageLeftSave = origLeft.clone();
         this->imageRightSave = origRight.clone();
-    }catch(std::invalid_argument& e){
-        DialogManager().callErrorDialog(e.what());
+//    }catch(std::invalid_argument& e){
+//        stopController();
+//        DialogManager().callErrorDialog(e.what());
+//        return false;
+    }catch(std::runtime_error& e){
         stopController();
-        return false;
-    }catch(std::exception& e){
-        std::cerr << "error: " << e.what() << std::endl;
-        //stopController();
+        DialogManager().callErrorDialog(e.what());
         return false;
     }
     return true;
@@ -166,8 +170,14 @@ void CameraBasedController::initTracker(){
 }
 
 void CameraBasedController::trackTrackers(){
-    if(useViveTracking)
-        viveTracking->RunProcedure();
+    if(useViveTracking){
+        try{
+            viveTracking->RunProcedure();
+        }catch(std::runtime_error& e){
+            stopController();
+            DialogManager().callErrorDialog(e.what());
+        }
+    }
 }
 
 void CameraBasedController::getCameraImagesAndTracking(){
