@@ -40,6 +40,10 @@ void pylonCamera::initCameras(){
     }
 
     cameras.Open();
+
+    GenApi_3_1_Basler_pylon::INodeMap& nodemap0 = cameras[0].GetNodeMap();
+    CBooleanParameter(nodemap0, "ReverseX").SetValue(true);
+    CBooleanParameter(nodemap0, "ReverseY").SetValue(true);
 }
 
 void pylonCamera::setBrightness(float newValue){
@@ -108,7 +112,7 @@ bool pylonCamera::grabImages(cv::Mat &imgLeft, cv::Mat &imgRight){
     catch (const GenericException &e)
     {
         std::string exceptionMsg = e.what();
-        std::string errMsg = "Error: es gab einen Fehler bei dem Beziehend er Bilder. Bitte prüfen Sie die Verbindung der Kameras und starten die Aufnahme erneut.\n\"" +
+        std::string errMsg = "Es gab einen Fehler bei dem Beziehend er Bilder. Bitte prüfen Sie die Verbindung der Kameras und starten die Aufnahme erneut.\n\"" +
                              exceptionMsg + "\"";
         throw runtime_error(errMsg);
     }
