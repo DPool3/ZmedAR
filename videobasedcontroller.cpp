@@ -5,8 +5,13 @@ VideoBasedController::VideoBasedController()
 
 }
 
-void VideoBasedController::reinitVideoBasedController(){
-    imageProcessor = ImageProcessor();
+void VideoBasedController::reinitVideoBasedController(int detector, int descriptor, int matcher){
+    //if combination BRISK/FAST
+    if(detector == 4 && descriptor == 1){
+        throw std::invalid_argument("SIFT detector kann nicht mit ORB descriptor verwendet werden.");
+    }
+
+    imageProcessor = ImageProcessor(detector, descriptor, matcher);
     try{
         videoManager.createVideoCapturePair(this->captureLeft, this->captureRight, this->videoPathLeft, this->videoPathRight);
         this->playFps = captureLeft.get(cv::CAP_PROP_FPS);

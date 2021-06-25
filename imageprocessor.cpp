@@ -5,6 +5,14 @@ ImageProcessor::ImageProcessor()
     imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
 }
 
+ImageProcessor::ImageProcessor(int detector, int descriptor, int matcher)
+{
+    this->selectedFeatureDetector = detector;
+    this->selectedFeatureDescriptor = descriptor;
+    this->selectedFeatureMatching = matcher;
+    imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
+}
+
 QImage ImageProcessor::prepImageForDisplay(cv::Mat& image){
     QImage returnImage;
 
@@ -57,9 +65,15 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat imageLeft, cv::Mat imageRight)
     iterations++;
 
     //choose methods for detection, description and matching
-    int selectedFeatureDetector = 1;
-    int selectedFeatureDescriptor = 1;
-    int selectedFeatureMatching = 1;
+
+    //1=ORB, 2=FAST, 3=BRISK, 4=SIFT, 5=SURF
+    int selectedFeatureDetector = this->selectedFeatureDetector;
+
+    //1=ORB, 2=BRIEF, 3=BRISK, 4=SIFT, 5=SURF
+    int selectedFeatureDescriptor = this->selectedFeatureDescriptor;
+
+    //1=Brute Force, 2=FLANN (Fast Library for Approximate Nearest Neighbors)
+    int selectedFeatureMatching = this->selectedFeatureMatching;
 
     //read in used image set to use variables for rectification and remapping
     cv::Mat Left_Stereo_Map1 = imageSet.getLeftStereoMap1();
@@ -68,64 +82,69 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat imageLeft, cv::Mat imageRight)
     cv::Mat Right_Stereo_Map2 = imageSet.getRightStereoMap2();
 
     //variables for results
-//    cv::Mat grayL, grayR;
+    cv::Mat grayL, grayR;
     cv::Mat remappedL, remappedR;
+
     cv::Mat descriptorLeft, descriptorRight;
-    std::vector<cv::DMatch> matchesLeftRight, matchesLeftConsecutive, matchesRightConsecutive;
+    std::vector<cv::Point2f> leftKeyPoints, rightKeyPoints;
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
+    std::vector<cv::DMatch> matchesLeftRight, matchesLeftConsecutive, matchesRightConsecutive;
+    std::vector<cv::Point3f> d3PointsVector;
 
     //color conversion rgb to gray for faster detection
-//    cv::cvtColor(imageLeft, grayL, CV_RGB2GRAY);
-//    cv::cvtColor(imageRight, grayR, CV_RGB2GRAY);
+    cv::cvtColor(imageLeft, grayL, CV_RGB2GRAY);
+    cv::cvtColor(imageRight, grayR, CV_RGB2GRAY);
 
+    //---------------------------------------------------
     //1. remap images to remove distortion and to rectify
-    cv::remap(imageLeft, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
-    cv::remap(imageRight, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+    //---------------------------------------------------
+    cv::remap(grayL, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+    cv::remap(grayR, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
 
+    //----------------------------------^
     //2. Feature Detection & Description
+    //----------------------------------
+
     //Feature Detection
     QElapsedTimer detectorTimer;
     detectorTimer.start();
 
-//    std::thread t1detect([&] {keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);});
-//    std::thread t2detect([&] {keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);});
-//    t1detect.join();
-//    t2detect.join();
-
-    keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);
-    keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);
+    std::thread t1detect([&] {keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);});
+    std::thread t2detect([&] {keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);});
+    t1detect.join();
+    t2detect.join();
 
     double detectionTime = detectorTimer.elapsed();
     detectionTimeAcc = detectionTimeAcc + detectionTime;
+    numberOfKeyPointsAcc = numberOfKeyPointsAcc + ((keyPointVectorLeft.size() + keyPointVectorRight.size())/2);
 
-    //(Optional) draw matches
-    cv::drawKeypoints(remappedL, keyPointVectorLeft, remappedL);
-    cv::drawKeypoints(remappedR, keyPointVectorRight, remappedR);
-    imageLeft = remappedL;
-    imageRight = remappedR;
+    std::cout << "LeftKeyPointVector: " << keyPointVectorLeft.size() << std::endl;
+    std::cout << "RightKeyPointVector: " << keyPointVectorRight.size() << std::endl;
 
     //Feature Description
     QElapsedTimer descriptorTimer;
     descriptorTimer.start();
 
-//    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);});
-//    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);});
-//    t1descript.join();
-//    t2descript.join();
+    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);});
+    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);});
+    t1descript.join();
+    t2descript.join();
 
-    descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);
-    descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);
+    cv::KeyPoint::convert(keyPointVectorLeft, leftKeyPoints, std::vector<int>());
+    cv::KeyPoint::convert(keyPointVectorRight, rightKeyPoints, std::vector<int>());
 
     double descriptionTime = descriptorTimer.elapsed();
     descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 
+    //----------------------------------
     //3. Feature Matching left and right
+    //----------------------------------
     QElapsedTimer matchingTimer;
     matchingTimer.start();
 
     if(!descriptorLeft.empty() && !descriptorRight.empty()){
         //match current images in time t
-        matchesLeftRight = featureMatchingMethod(descriptorLeft, descriptorRight, selectedFeatureMatching);
+        matchesLeftRight = featureMatchingMethod(descriptorLeft, descriptorRight, selectedFeatureDescriptor, selectedFeatureMatching);
         std::cout << matchesLeftRight.size() << " matches in images in t" << std::endl;
     }
     else{
@@ -134,26 +153,37 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat imageLeft, cv::Mat imageRight)
 
     double matchingTime = matchingTimer.elapsed();
     matchingTimeAcc = matchingTimeAcc + matchingTime;
+    numberOfMatchesAcc = numberOfMatchesAcc + matchesLeftRight.size();
 
-    //4. Feature Matching consecutive
-
+    //----------------------------
+    //4. Temporal Feature Matching
+    //----------------------------
     //Only execute if there is a previous image
-//    if((!prevImageLeft.empty() && !prevImageRight.empty()) && (!descriptorLeft.empty() && !descriptorRight.empty())){
+    if((!prevImageLeft.empty() && !prevImageRight.empty()) && (!descriptorLeft.empty() && !descriptorRight.empty())){
 
-//        matchesLeftConsecutive = featureMatchingMethod(descriptorLeft, prevDescriptorLeft, selectedFeatureMatching);
-//        matchesRightConsecutive = featureMatchingMethod(descriptorRight, prevDescriptorRight, selectedFeatureMatching);
+        matchesLeftConsecutive = featureMatchingMethod(descriptorLeft, prevDescriptorLeft, selectedFeatureDescriptor, selectedFeatureMatching);
+        matchesRightConsecutive = featureMatchingMethod(descriptorRight, prevDescriptorRight, selectedFeatureDescriptor, selectedFeatureMatching);
 
-//        std::cout << matchesLeftConsecutive.size() << " matches in left image in t & t-1" << std::endl;
-//        std::cout << matchesRightConsecutive.size() << " matches in right image in t & t-1" << std::endl;
-//    }
+        std::cout << matchesLeftConsecutive.size() << " matches in left image in t & t-1" << std::endl;
+        std::cout << matchesRightConsecutive.size() << " matches in right image in t & t-1" << std::endl;
+    }
 
-    //5. Optimization
+    //--------------------------------------
+    //5. Triangulation of matching Keypoints
+    //--------------------------------------
+    //d3PointsVector = triangulate(leftKeyPoints, rightKeyPoints);
 
-    //4. Estimating the relative pose between the left images and finding the inlier matches
+    //---------------------------
+    //6. Relative Pose Estimation
+    //---------------------------
+    //
+    //Estimating the relative pose between the left images and finding the inlier matches
     //      -> RANSAC
-    //5. Determining the motion type and direction of the camera
+
+    //7. Determining the motion type and direction of the camera
     //      -> Kalman filter
-    //6. Finding the exact translation motion of the camera
+
+    //8. Finding the exact translation motion of the camera
 
     double completeTime = totalImageMatchingTimer.elapsed();
     completeTimeAcc = completeTimeAcc + completeTime;
@@ -161,37 +191,27 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat imageLeft, cv::Mat imageRight)
     //Set the current values as previous
     prevImageLeft = remappedL;
     prevImageRight = remappedR;
-    prevKeypointsLeft = keyPointVectorLeft;
-    prevKeypointsRight = keyPointVectorRight;
+    prevKeypointsLeft = leftKeyPoints;
+    prevKeypointsRight = rightKeyPoints;
+    prev3DPointsVector = d3PointsVector;
     prevDescriptorLeft = descriptorLeft;
     prevDescriptorRight = descriptorRight;
+    prevMatchesLeftRight = matchesLeftRight;
 
     //Outputs
     std::cout << "Overall mean time complete: " << completeTimeAcc/iterations << "ms." << std::endl;
     std::cout << "Overall mean time for total feature detection: " << detectionTimeAcc/iterations << "ms." << std::endl;
     std::cout << "Overall mean time for total feature description: " << descriptionTimeAcc/iterations << "ms." << std::endl;
     std::cout << "Overall mean time for total image matching: " << matchingTimeAcc/iterations << "ms." << std::endl;
-}
-
-std::vector<cv::DMatch>  ImageProcessor::bruteForceMatches(cv::Mat descriptorOne, cv::Mat descriptorTwo){
-    std::vector<cv::DMatch> matches;
-    cv::Ptr<cv::BFMatcher> bfMatcher = cv::BFMatcher::create();
-    bfMatcher->match(descriptorTwo, descriptorOne, matches);
-    return matches;
-}
-
-std::vector<cv::DMatch> ImageProcessor::flann(cv::Mat descriptorOne, cv::Mat descriptorTwo){
-    std::vector<cv::DMatch> matches;
-    cv::Ptr<cv::FlannBasedMatcher> flann = cv::FlannBasedMatcher::create();
-    flann->match(descriptorTwo, descriptorOne, matches);
-    return matches;
+    std::cout << "Overall average number of matches: " << numberOfMatchesAcc/iterations << "." << std::endl;
+    std::cout << "Overall average number of found key points: " << numberOfKeyPointsAcc/iterations << "." << std::endl;
 }
 
 std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection){
     std::vector<cv::KeyPoint> keyPointVector;
 
     //1. Feature detection for both stereo pair images
-    //1=ORB, 2=FAST, 3=BRISK, 4=AKAZE, 5=AGAST, 6=SIFT, 7=SURF
+    //1=ORB, 2=FAST, 3=BRISK, 4=SIFT, 5=SURF
     switch (selectedFeatureDetection) {
     case 1:{
         //ORB - Oriented FAST and Rotated BRIEF
@@ -221,24 +241,6 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
         break;
     }
     case 4:{
-        //AKAZE
-        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
-        akaze->detect(remapped, keyPointVector, cv::Mat());
-
-        selectedDetector = "AKAZE";
-
-        break;
-    }
-    case 5:{
-        //AGAST
-        cv::Ptr<cv::AgastFeatureDetector> agast = cv::AgastFeatureDetector::create();
-        agast->detect(remapped, keyPointVector, cv::Mat());
-
-        selectedDetector = "AGAST";
-
-        break;
-    }
-    case 6:{
         cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
         sift->detect(remapped, keyPointVector, cv::Mat());
 
@@ -246,7 +248,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
 
         break;
     }
-    case 7:{
+    case 5:{
         cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
         surf->detect(remapped, keyPointVector, cv::Mat());
 
@@ -263,7 +265,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
 
 cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<cv::KeyPoint> keyPointVector, int selectedFeatureDescription){
     //1.2 Feature description for both images
-    //1=ORB, 2=BRIEF, 3=SIFT, 4=SURF, 5=BRISK, 6=AKAZE
+    //1=ORB, 2=BRIEF, 3=BRISK, 4=SIFT, 5=SURF
     cv::Mat descriptor;
 
     switch (selectedFeatureDescription) {
@@ -286,24 +288,6 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
         break;
     }
     case 3:{
-        //SIFT (Scale-invariant feature transform)
-        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
-        sift->compute(remapped, keyPointVector, descriptor);
-
-        selectedDescriptor = "SIFT";
-
-        break;
-    }
-    case 4:{
-        //SURF (Speeded Up Robust Features)
-        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
-        surf->compute(remapped, keyPointVector, descriptor);
-
-        selectedDescriptor = "SURF";
-
-        break;
-    }
-    case 5:{
         //BRISK (Binary Robust Invariant Scalable Keypoints)
         cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
         brisk->compute(remapped, keyPointVector, descriptor);
@@ -312,12 +296,21 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
 
         break;
     }
-    case 6:{
-        //Can Only be used with KAZE or AKAZE Keypoints
-        cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
-        akaze->compute(remapped, keyPointVector, descriptor);
+    case 4:{
+        //SIFT (Scale-invariant feature transform)
+        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
+        sift->compute(remapped, keyPointVector, descriptor);
 
-        selectedDescriptor = "AKAZE";
+        selectedDescriptor = "SIFT";
+
+        break;
+    }
+    case 5:{
+        //SURF (Speeded Up Robust Features)
+        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
+        surf->compute(remapped, keyPointVector, descriptor);
+
+        selectedDescriptor = "SURF";
 
         break;
     }
@@ -328,29 +321,145 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
     return descriptor;
 }
 
-std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int SelectedFeatureMatching){
-    std::vector<cv::DMatch> matches;
+std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int selectedFeatureDescription ,int SelectedFeatureMatching){
+    std::vector<std::vector<cv::DMatch>> matches;
+    std::vector<cv::DMatch> goodMatches;
 
-    switch (SelectedFeatureMatching) {
-    case 1:{
-        //Brute-Force Matcher
-        matches = bruteForceMatches(descriptorOne, descriptorTwo);
+    //check if number of features in both vectors is equal or greater than number of nearest neighbors in knn match.
+    //else knn match will throw an error
+    if((descriptorOne.rows >= 2) && (descriptorTwo.rows >= 2)){
 
-        selectedMatcher = "Brute-Force";
+        //matching ratio
+        const float ratio = 0.7;
 
-        break;
+        switch (SelectedFeatureMatching) {
+        case 1:{
+            //Brute-Force Matcher
+            selectedMatcher = "Brute-Force";
+
+            //specifies the distance measurement to be used. Default cv::NORM_L2
+            int normType = cv::NORM_L2;
+
+            //If it is true, Matcher returns only those matches with value (i,j)
+            //such that i-th descriptor in set A has j-th descriptor in set B as the best match and vice-versa.
+            //That is, the two features in both sets should match each other. It provides consistent result,
+            //and is a good alternative to ratio test proposed by D.Lowe in SIFT paper.
+            //false by default.
+            //https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
+            int crossCheck = false;
+
+            switch (selectedFeatureDescription) {
+            case 1:
+            case 2:
+            case 3:{
+                //best values for orb, brief or brisk descriptors
+                normType = cv::NORM_HAMMING;
+                crossCheck = true;
+
+                //use matcher with normtype and crosscheck
+                cv::BFMatcher matcher(normType, crossCheck);
+                matcher.match(descriptorOne, descriptorTwo, goodMatches);
+
+                break;
+            }
+            case 4:
+            case 5:{
+                //use default values and knnMatch for sift or surf
+                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create();
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+                //apply ratio test by D.Lowe
+                const float ratio_thresh = 0.75f;
+                for(size_t i = 0; i < matches.size(); i++)
+                {
+                    if(matches[i][0].distance < ratio_thresh * matches[i][1].distance)
+                    {
+                        goodMatches.push_back(matches[i][0]);
+                    }
+                }
+
+                break;
+            }
+            default:
+                break;
+            }
+
+            break;
+        }
+        case 2:{
+            //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
+            selectedMatcher = "FLANN";
+
+            switch (selectedFeatureDescription) {
+            case 1:
+            case 2:
+            case 3: {
+                //Flann parameter. algorithm = flann indexed lsh, table_number = 12, key_size = 20, multi_probe_level = 1   #
+                cv::FlannBasedMatcher matcher (new cv::flann::LshIndexParams(12,20,2));
+                matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+                break;
+            }
+            case 4:
+            case 5:{
+                //Flann parameter. algorithm = kd tree, trees = 4
+                cv::FlannBasedMatcher matcher (new cv::flann::KDTreeIndexParams(5));
+                matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+                break;
+            }
+            default:
+
+                break;
+            }
+
+            const float ratio_thresh = 0.75f;
+            for (size_t i = 0; i < matches.size(); i++)
+            {
+                if (matches[i].size() == 2 && (matches[i][0].distance < ratio_thresh * matches[i][1].distance))
+                {
+                    goodMatches.push_back(matches[i][0]);
+                }
+            }
+
+            break;
+        }
+        default:
+            break;
+        }
+
+        //Optimization of matches
+        for(size_t i = 0; i < matches.size(); i++){
+            if(matches[i].size() < 2)
+                continue;
+            if(matches[i][0].distance > ratio * matches[i][1].distance)
+                continue;
+            goodMatches.push_back(matches[i][0]);
+        }
     }
-    case 2:{
-        //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
-        matches = flann(descriptorOne, descriptorTwo);
-
-        selectedMatcher = "FLANN";
-
-        break;
-    }
-    default:
-        break;
+    else{
+        std::cout << "Less than two features found in at least one descriptor." << std::endl;
     }
 
-    return matches;
+    return goodMatches;
+}
+
+std::vector<cv::Point3f> ImageProcessor::triangulate(std::vector<cv::Point2f> leftKeyPoints, std::vector<cv::Point2f> rightKeyPoints){
+    cv::Mat leftProjMat = imageSet.getProjMatL();
+    cv::Mat rightProjMat = imageSet.getProjMatR();
+    std::vector<cv::Point3f> d3PointsVector;
+    cv::Point3f d3Points;
+    cv::Mat points3DHomogeneous;
+
+    //calculate the 3D points in homogenous coordinates
+    cv::triangulatePoints(leftProjMat, rightProjMat, leftKeyPoints, rightKeyPoints, points3DHomogeneous);
+
+    //convert from homogenous coordinates to Cartesian 3D coordinates
+//    for(int i = 0; i < d4Points.cols; i++){
+//        d3Points.x = d4Points[0,i]/d4Points(3,i);
+//        d3Points.y = d4Points(1,i)/d4Points(3,i);
+//        d3Points.z = d4Points(2,i)/d4Points(3,i);
+//        if(d3Points.x < 10000 && d3Points.y < 10000  && d3Points.z < 10000)
+//            d3PointsVector.push_back(d3Points);
+//    }
+
+    return d3PointsVector;
 }

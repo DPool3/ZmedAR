@@ -14,7 +14,7 @@ class VideoBasedController
 public:
     VideoBasedController();
     bool getProcessedImages(QImage&, QImage&);
-    void reinitVideoBasedController();
+    void reinitVideoBasedController(int, int, int);
     int getfps();
 
     bool useCameraTracking = false;

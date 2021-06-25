@@ -28,7 +28,13 @@ void VideoBasedView::on_startVideo_button_clicked()
 
 void VideoBasedView::start(){
     //Notwendig, bei jedem neuen Video, weil ImageProcessor Bilder zwischenspeichert.
-    vbc.reinitVideoBasedController();
+    try{
+        vbc.reinitVideoBasedController(ui->detectorSpinBox->value(), ui->descriptorSpinBox->value(), ui->matcherSpinBox->value());
+    }catch(std::exception& e){
+        //exception for wrong combination
+        return;
+    }
+
     lockOrReleaseUi(false);
     std::cout << "video recorded with " << vbc.getfps() << "fps." << std::endl;
     timer.restart();
@@ -51,6 +57,9 @@ void VideoBasedView::lockOrReleaseUi(bool isEnabled){
     ui->videoFilePathRight_QLineEdit->setEnabled(isEnabled);
     ui->searchFile_button->setEnabled(isEnabled);
     ui->searchFile_button_2->setEnabled(isEnabled);
+    ui->detectorSpinBox->setEnabled(isEnabled);
+    ui->descriptorSpinBox->setEnabled(isEnabled);
+    ui->matcherSpinBox->setEnabled(isEnabled);
 }
 
 void VideoBasedView::on_showVideosCheckBox_toggled(bool checked)
