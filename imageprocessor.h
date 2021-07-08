@@ -25,10 +25,43 @@ public:
 
 private:
 
+    void detectFeatures(
+            cv::Mat remappedL,
+            cv::Mat remappedR,
+            std::vector<cv::KeyPoint>& keyPointVectorLeft,
+            std::vector<cv::KeyPoint>& keyPointVectorRight,
+            int selectedFeatureDetector);
+
+    void describeFeatures(
+            cv::Mat remappedL,
+            cv::Mat remappedR,
+            cv::Mat& descriptorLeft,
+            cv::Mat& descriptorRight,
+            std::vector<cv::KeyPoint> keyPointVectorLeft,
+            std::vector<cv::KeyPoint> keyPointVectorRight,
+            int selectedFeatureDescription);
+
+    void featureMatching(
+            cv::Mat descriptorLeft,
+            cv::Mat descriptorRight,
+            std::vector<cv::KeyPoint> keyPointVectorLeft,
+            std::vector<cv::KeyPoint> keyPointVectorRight,
+            int selectedFeatureDescriptor,
+            int selectedFeatureMatching,
+            std::vector<cv::DMatch>& matchesLeftRight,
+            std::vector<cv::KeyPoint>& matchedKeyPointsLeft_tMinus1,
+            std::vector<cv::KeyPoint>& matchedKeyPointsLeft_t,
+            std::vector<cv::KeyPoint>& matchedKeyPointsRight_tMinus1,
+            std::vector<cv::KeyPoint>& matchedKeyPointsRight_t);
+
+    void triangulate(
+            std::vector<cv::KeyPoint>,
+            std::vector<cv::KeyPoint>,
+            std::vector<cv::Point3f>&);
+
     std::vector<cv::KeyPoint> featureDetectionMethod(cv::Mat, int);
     cv::Mat featureDescriptionMethod(cv::Mat, std::vector<cv::KeyPoint>, int);
     std::vector<cv::DMatch> featureMatchingMethod(cv::Mat, cv::Mat, int, int);
-    std::vector<cv::Point3f> triangulate(std::vector<cv::Point2f>, std::vector<cv::Point2f>);
 
     ImageSet imageSet;
 
@@ -42,10 +75,9 @@ private:
     int selectedFeatureMatching = 1;
 
     cv::Mat prevImageLeft, prevImageRight;
-    std::vector<cv::Point2f> prevKeypointsLeft, prevKeypointsRight;
+    std::vector<cv::KeyPoint> prevKeypointsLeft, prevKeypointsRight;
     cv::Mat prevDescriptorLeft, prevDescriptorRight;
     std::vector<cv::DMatch> prevMatchesLeftRight;
-    std::vector<cv::Point3f> prev3DPointsVector;
 
     //select methods
     std::string selectedDetector = "";
