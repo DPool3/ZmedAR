@@ -2,7 +2,7 @@
 #ifndef DIRECTORYMANAGER_H
 #define DIRECTORYMANAGER_H
 
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <sys/stat.h>
 #include <chrono>
 #include <ctime>

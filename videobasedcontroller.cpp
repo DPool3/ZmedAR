@@ -12,7 +12,9 @@ void VideoBasedController::reinitVideoBasedController(int detector, int descript
     }
 
     imageProcessor = ImageProcessor(detector, descriptor, matcher);
+
     try{
+        imageProcessor.createNewTrackingFile();
         videoManager.createVideoCapturePair(this->captureLeft, this->captureRight, this->videoPathLeft, this->videoPathRight);
         this->playFps = captureLeft.get(cv::CAP_PROP_FPS);
     }catch(const std::invalid_argument& e){
@@ -34,6 +36,7 @@ void VideoBasedController::getVideoFrames(){
 
 void VideoBasedController::stop(){
     videoManager.releaseVideoCapturePair(this->captureLeft, this->captureRight);
+    imageProcessor.closeTrackingFile();
 }
 
 bool VideoBasedController::getProcessedImages(QImage &qImageLeft, QImage &qImageRight){

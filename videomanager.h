@@ -1,7 +1,7 @@
 #ifndef VIDEOMANAGER_H
 #define VIDEOMANAGER_H
 
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <thread>
 #include <future>
 

@@ -138,8 +138,8 @@ void ImageSetDialog::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
         cv::resize(imageRight, imageRight, cv::Size(480, 320), 0, 0);
 
         //Change to RGB format & save it in global Mat
-        cv::cvtColor(imageLeft, imageLeft, CV_BGR2RGB);
-        cv::cvtColor(imageRight, imageRight, CV_BGR2RGB);
+        cv::cvtColor(imageLeft, imageLeft, cv::COLOR_BGR2RGB);
+        cv::cvtColor(imageRight, imageRight, cv::COLOR_BGR2RGB);
 
         //Convert to QImage
         QImage qimgLeft((const unsigned char*) imageLeft.data, imageLeft.cols, imageLeft.rows, QImage::Format_RGB888);

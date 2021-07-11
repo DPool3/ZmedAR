@@ -26,6 +26,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    camerabasedcontroller.cpp \
+    camerabasedview.cpp \
     dialogmanager.cpp \
     directorymanager.cpp \
     imageprocessor.cpp \
@@ -34,15 +36,18 @@ SOURCES += \
     mainsettings.cpp \
     errordialog.cpp \
     stereocalibration.cpp \
-    videobased.cpp \
-    camerabased.cpp \
     imageset.cpp \
     imagesetdialog.cpp \
     filesystem.cpp \
     PylonCamera.cpp \
-    videomanager.cpp
+    videobasedcontroller.cpp \
+    videobasedview.cpp \
+    videomanager.cpp \
+    vivetracking.cpp
 
 HEADERS += \
+    camerabasedcontroller.h \
+    camerabasedview.h \
     dialogmanager.h \
     directorymanager.h \
     imageprocessor.h \
@@ -50,27 +55,33 @@ HEADERS += \
     mainsettings.h \
     errordialog.h \
     stereocalibration.h \
-    videobased.h \
-    camerabased.h \
     imageset.h \
     imagesetdialog.h \
     filesystem.h \
     PylonCamera.h \
-    videomanager.h
+    videobasedcontroller.h \
+    videobasedview.h \
+    videomanager.h \
+    vivetracking.h
 
 FORMS += \
+    camerabasedview.ui \
         mainwindow.ui \
     errordialog.ui \
     stereocalibration.ui \
     videobased.ui \
-    camerabased.ui \
     imagesetdialog.ui \
-    filesystem.ui
+    filesystem.ui \
+    videobasedview.ui
 
-INCLUDEPATH += /usr/local/include/opencv2
+INCLUDEPATH += /usr/local/include/opencv4
+#INCLUDEPATH += /usr/local/include/opencv2
 INCLUDEPATH += /opt/pylon/include
+INCLUDEPATH += /home/daniel/Software/GitProjects/openvr
 
-LIBS += $(shell pkg-config opencv --libs)
+LIBS += -L/home/daniel/Software/GitProjects/openvr/lib/linux64 -lopenvr_api
+LIBS += $(shell pkg-config opencv4 --libs)
+#LIBS += $(shell pkg-config opencv --libs)
 LIBS += -L/opt/pylon/lib -lpylonbase -lpylonutility -lGenApi_gcc_v3_1_Basler_pylon -lGCBase_gcc_v3_1_Basler_pylon -lpylonc \
         -lNodeMapData_gcc_v3_1_Basler_pylon
 LIBS += -L/opt/pylon/lib64 -lavcodec -lavformat -lavresample -lavutil

@@ -227,8 +227,8 @@ void StereoCalibration::loadImgPoints(
         imgL = cv::imread(leftPath, cv::IMREAD_COLOR);
         imgR = cv::imread(rightPath, cv::IMREAD_COLOR);
 
-        cv::cvtColor(imgL, grayL, CV_RGB2GRAY);
-        cv::cvtColor(imgR, grayR, CV_RGB2GRAY);
+        cv::cvtColor(imgL, grayL, cv::COLOR_RGB2GRAY);
+        cv::cvtColor(imgR, grayR, cv::COLOR_RGB2GRAY);
 
         //resized images left and right for faster findChessBoardCorners an circles
         if(resizeFactor != 1.0){
@@ -301,8 +301,8 @@ void StereoCalibration::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
         cv::resize(imageRight, imageRight, cv::Size(480, 320), 0, 0);
 
         //Change to RGB format & save it in global Mat
-        cv::cvtColor(imageLeft, imageLeft, CV_BGR2RGB);
-        cv::cvtColor(imageRight, imageRight, CV_BGR2RGB);
+        cv::cvtColor(imageLeft, imageLeft, cv::COLOR_BGR2RGB);
+        cv::cvtColor(imageRight, imageRight, cv::COLOR_BGR2RGB);
 
         //Convert to QImage
         QImage qimgLeft((const unsigned char*) imageLeft.data, imageLeft.cols, imageLeft.rows, QImage::Format_RGB888);

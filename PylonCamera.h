@@ -2,7 +2,7 @@
 #define IMAGEGRABBER_H
 
 #include <QElapsedTimer>
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <pylon/PylonIncludes.h>
 #include <thread>
 
