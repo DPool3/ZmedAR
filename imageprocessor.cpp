@@ -81,8 +81,6 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     //read camera matrix and dist coef to find essential matrix later
     cv::Mat camMatLeft = imageSet.getCamL();
     cv::Mat camMatRight = imageSet.getCamR();
-    cv::Mat distCoefLeft = imageSet.getDistCoefL();
-    cv::Mat distCoefRight = imageSet.getDistCoefR();
 
     //color conversion rgb to gray for faster detection
     cv::Mat grayL, grayR;
@@ -102,8 +100,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
     cv::Mat descriptorLeft, descriptorRight;
 
-    detectFeatures(remappedL, remappedR, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
-    describeFeatures(remappedL, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
+    detectFeatures(remappedL, remappedL, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
+    describeFeatures(remappedR, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
 
     //--------------------------------------------------------------------------------------
     //3. Feature matching for left and right image. If possible also for consecutive images.
@@ -111,9 +109,10 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     std::vector<cv::KeyPoint> currentMatchesLeft, previousMatchesLeft;
     std::vector<cv::KeyPoint> currentMatchesRight, previousMatchesRight;
     std::vector<cv::DMatch> matchesLeftRight;
+    cv::Mat rVec_Left, tVec_Left, rVec_Right, tVec_Right;
 
     //matches are searched between left and right as well as previous to current
-    //this way we can find matches between all 4 images. This way we can guarantee a possible pose recovery
+    //this way we can find matches between all 4 images.
     featureMatching(descriptorLeft, descriptorRight,
                     keyPointVectorLeft, keyPointVectorRight,
                     selectedFeatureDescriptor, selectedFeatureMatching,
@@ -123,10 +122,13 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
 
     try{
         if(iterations == 1){
-            leftCameraWorldCoords = cv::Mat::zeros(3, 3, CV_8UC1);
-            std::cout << leftCameraWorldCoords << std::endl;
-            rightCameraWorldCoords = cv::Mat::zeros(3, 3, CV_8UC1);
-            std::cout << rightCameraWorldCoords << std::endl;
+            //re/set variables to zero
+            rVec_Left = cv::Mat(1, 3, CV_64F, double(0));
+            tVec_Left = cv::Mat(1, 3, CV_64F, double(0));
+            rVec_Right = cv::Mat(1, 3, CV_64F, double(0));
+            tVec_Right = cv::Mat(1, 3, CV_64F, double(0));
+            leftCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
+            rightCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
             throw std::invalid_argument("First image.");
         }else if(iterations > 1 && (currImageLeft.empty() && currImageRight.empty())){
             throw std::invalid_argument("Empty Image.");
@@ -148,23 +150,18 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
         //-------------------------------------
         //5. Calculate rotation and translation
         //-------------------------------------
-
         if(prevMatchesIn_Left.size() <= 5 && currMatchesIn_Left.size() <= 5 && prevMatchesIn_Right.size() <= 5 && currMatchesIn_Right.size() <= 5){
             throw std::invalid_argument("Not enough matches ater inliers filter.");
         }
 
         //solvePnPRansac for left to get rotation vector and translation vector
-        cv::Mat rVec_Left, tVec_Left;
-        cv::solvePnPRansac(points3DIn_Left, currMatchesIn_Left, camMatLeft, distCoefLeft, rVec_Left, tVec_Left);
+        cv::Mat emptyDistCoeff;
+        cv::solvePnPRansac(points3DIn_Left, currMatchesIn_Left, camMatLeft, emptyDistCoeff, rVec_Left, tVec_Left);
 
         //solvePnPRansac for right to get rotation vector and translation vector
-        cv::Mat rVec_Right, tVec_Right;
-        cv::solvePnPRansac(points3DIn_Right, currMatchesIn_Right, camMatRight, distCoefRight, rVec_Right, tVec_Right);
+        cv::solvePnPRansac(points3DIn_Right, currMatchesIn_Right, camMatRight, emptyDistCoeff, rVec_Right, tVec_Right);
 
-//        //draw inliers left (optional)
 //        drawInliers(prevImageLeft, currImageLeft, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left, rVec_Left, tVec_Left, camMatLeft, distCoefLeft);
-
-//        //draw inliers right (optional)
 //        drawInliers(prevImageRight, currImageRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right, rVec_Right, tVec_Right, camMatRight, distCoefRight);
 
         //----------------------------------------------------------------------------------------
@@ -172,20 +169,22 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
         //----------------------------------------------------------------------------------------
 
         //calculate world coordinates for left camera
-        leftCameraWorldCoords = calcWorldCoords(rVec_Left, tVec_Left);
-        std::cout << leftCameraWorldCoords << std::endl;
+        calcWorldCoords(rVec_Left, tVec_Left);
+        leftCameraWorldTranslation = tVec_Left;
 
         //calculate world coordinates for right camera
-        rightCameraWorldCoords = calcWorldCoords(rVec_Right, tVec_Right);
-        std::cout << rightCameraWorldCoords << std::endl;
+        calcWorldCoords(rVec_Right, tVec_Right);
+        rightCameraWorldTranslation = tVec_Right;
 
         //---------------------------
         //7. Save coordinates in File
         //---------------------------
-        addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
+        //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
+        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
 
     }catch(std::exception e){
-        addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
+        //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
+        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
     }
 
     double completeTime = totalImageMatchingTimer.elapsed();
@@ -376,17 +375,28 @@ void ImageProcessor::drawInliers(cv::Mat prevImage, cv::Mat currImage, std::vect
     }
 
     cv::imshow("prev Left", prevImageClone);
-    cv::imshow("curr Left", currImageClone);
+    cv::imshow("curr Left (blue being reprojected points)", currImageClone);
     cv::waitKey(10000);
     cv::destroyAllWindows();
 }
 
-cv::Mat ImageProcessor::calcWorldCoords(cv::Mat r, cv::Mat t){
-    cv::Mat rotation;
-    cv::Rodrigues(r, rotation);
-    cv::Mat rotationInv;
-    cv::transpose(rotation, rotationInv);
-    return -rotationInv * t;
+void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec){
+    cv::Mat R = cv::Mat(3, 3, CV_64F, double(0));;
+    cv::Rodrigues(rvec, R);
+
+    R = R.t();
+    tvec = -R * tvec;
+
+//    in case rotation is needed
+//    cv::Rodrigues(R, rvec);
+
+//    double roll = atan2(-R.at<double>(2,1), R.at<double>(2,2));
+//    double pitch = asin(R.at<double>(2,0));
+//    double yaw = atan2(-R.at<double>(1,0), R.at<double>(0,0));
+
+//    cv::Mat T = cv::Mat::eye(4, 4, R.type());
+//    T(cv::Range(0,3), cv::Range(0,3) ) = R;
+//    T(cv::Range(0,3), cv::Range(3,4) ) = tvec;
 }
 
 std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection){
@@ -626,7 +636,7 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
 
 void ImageProcessor::createNewTrackingFile(){
     std::string fileName = "VO_" + DirectoryManager().getCurrentDateAsString();
-    std::string fileType = ".xml";
+    std::string fileType = ".txt";
     this->trackingFile.open("/home/daniel/ZAR/trackingFiles/" + fileName + fileType, std::ios_base::app);
 }
 
@@ -635,7 +645,7 @@ void ImageProcessor::closeTrackingFile(){
         trackingFile.close();
 }
 
-void ImageProcessor::addLineToFile(cv::Mat leftCameraWorldCoords, cv::Mat rightCameraWorldCoord){
-    this->trackingFile << "left: "  << leftCameraWorldCoords << ", " << std::endl
-                       << "right: " << rightCameraWorldCoord << ", " << std::endl;
+void ImageProcessor::addLineToFile(cv::Mat tVecLeft, cv::Mat tVecRight){
+    this->trackingFile << "TL: " << tVecLeft.at<double>(0,0) << ", " << tVecLeft.at<double>(0,1) << ", " << tVecLeft.at<double>(0,2) <<
+                          ", TR: " << tVecRight.at<double>(0,0) << ", " << tVecRight.at<double>(0,1) << ", " << tVecRight.at<double>(0,2) << std::endl;
 }

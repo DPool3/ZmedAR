@@ -2,6 +2,7 @@
 #define IMAGEPROCESSOR_H
 
 #include <opencv4/opencv2/core.hpp>
+#include <opencv4/opencv2/viz.hpp>
 #include <opencv4/opencv2/calib3d/calib3d.hpp>
 #include <opencv4/opencv2/highgui/highgui.hpp>
 #include <opencv4/opencv2/imgproc/imgproc.hpp>
@@ -75,9 +76,9 @@ private:
                      cv::Mat camMat,
                      cv::Mat distCoef);
 
-    cv::Mat calcWorldCoords(cv::Mat r, cv::Mat t);
+    void calcWorldCoords(cv::Mat r, cv::Mat& t);
 
-    void addLineToFile(cv::Mat leftCameraWorldCoords, cv::Mat rightCameraWorldCoord);
+    void addLineToFile(cv::Mat leftCameraWorldTranslation, cv::Mat rightCameraWorldTranslation);
 
     std::vector<cv::KeyPoint> featureDetectionMethod(cv::Mat, int);
     cv::Mat featureDescriptionMethod(cv::Mat, std::vector<cv::KeyPoint>, int);
@@ -107,8 +108,7 @@ private:
     std::string selectedMatcher = "";
 
     //world coordinates of cameras
-    cv::Mat leftCameraWorldCoords;
-    cv::Mat rightCameraWorldCoords;
+    cv::Mat leftCameraWorldTranslation, rightCameraWorldTranslation;
 
     //mean time calculation
     int iterations = 0;
