@@ -71,7 +71,7 @@ void ImageSetDialog::on_imageSetRecord_button_clicked()
     else{
         if(this->imageSet.getNumberRecordedImages() < this->imageSet.getNumberOfImages()){
             //Save one image each
-            saveImagesInImageSet(this->imageLeft, this->imageRight);
+            saveImagesInImageSet(this->imageRight, this->imageLeft);
         }
         else{
             counterTimer->stop();
