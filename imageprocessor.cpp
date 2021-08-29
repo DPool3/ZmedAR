@@ -2,7 +2,11 @@
 
 ImageProcessor::ImageProcessor()
 {
-    imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
+    imageSet = ImageSet(selectedImageSet);
+    leftStereoMap1 = imageSet.getLeftStereoMap1();
+    leftStereoMap2 = imageSet.getLeftStereoMap2();
+    rightStereoMap1 = imageSet.getRightStereoMap1();
+    rightStereoMap2 = imageSet.getRightStereoMap2();
 }
 
 ImageProcessor::ImageProcessor(int detector, int descriptor, int matcher)
@@ -10,10 +14,15 @@ ImageProcessor::ImageProcessor(int detector, int descriptor, int matcher)
     this->selectedFeatureDetector = detector;
     this->selectedFeatureDescriptor = descriptor;
     this->selectedFeatureMatching = matcher;
-    imageSet = ImageSet("/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15");
+    imageSet = ImageSet(selectedImageSet);
+    leftStereoMap1 = imageSet.getLeftStereoMap1();
+    leftStereoMap2 = imageSet.getLeftStereoMap2();
+    rightStereoMap1 = imageSet.getRightStereoMap1();
+    rightStereoMap2 = imageSet.getRightStereoMap2();
 }
 
-QImage ImageProcessor::prepImageForDisplay(cv::Mat& image){
+QImage ImageProcessor::prepImageForDisplay(cv::Mat& image)
+{
     QImage returnImage;
 
     //Resize Images
@@ -29,7 +38,37 @@ QImage ImageProcessor::prepImageForDisplay(cv::Mat& image){
     return returnImage;
 }
 
-void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRight){
+QImage ImageProcessor::generateAnaglyphImage(cv::Mat imageLeft, cv::Mat imageRight)
+{
+    //remap images
+    cv::Mat remappedLeft, remappedRight;
+    cv::remap(imageLeft, remappedLeft, leftStereoMap1, leftStereoMap2, cv::INTER_LANCZOS4, cv::BORDER_CONSTANT, cv::Scalar());
+    cv::remap(imageRight, remappedRight, rightStereoMap1, rightStereoMap2, cv::INTER_LANCZOS4, cv::BORDER_CONSTANT, cv::Scalar());
+
+    //resize
+    cv::resize(remappedLeft, remappedLeft, cv::Size(480,320), 0, 0);
+    cv::resize(remappedRight, remappedRight, cv::Size(480,320), 0, 0);
+
+    //generate anaglyph 3D image
+    cv::Mat remappedSplitLeft[3], remappedSplitRight[3], anaglyph3DImage;
+    std::vector<cv::Mat> anaglyph_channels;
+
+    cv::split(remappedLeft, remappedSplitLeft);
+    cv::split(remappedRight, remappedSplitRight);
+
+    anaglyph_channels.push_back(remappedSplitLeft[0]);
+    anaglyph_channels.push_back(remappedSplitRight[1]);
+    anaglyph_channels.push_back(remappedSplitRight[2]);
+
+    cv::merge(anaglyph_channels, anaglyph3DImage);
+
+    QImage anaglyph3DQImage((const unsigned char*) anaglyph3DImage.data, anaglyph3DImage.cols, anaglyph3DImage.rows, QImage::Format_RGB888);
+
+    return anaglyph3DQImage;
+}
+
+void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRight)
+{
     cv::Mat imgLeftGray, imgRightGray;
     cv::Mat imgBlurLeft, imgBlurRight;
     cv::Mat detectedEdgesLeft, detectedEdgesRight;
@@ -57,7 +96,8 @@ void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRig
     imageRight = detectedEdgesRight;
 }
 
-void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currImageRight){
+void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currImageRight)
+{
     QElapsedTimer totalImageMatchingTimer;
     totalImageMatchingTimer.start();
 
@@ -72,12 +112,6 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     //1=Brute Force, 2=FLANN (Fast Library for Approximate Nearest Neighbors)
     int selectedFeatureMatching = this->selectedFeatureMatching;
 
-    //read used image set to use variables for rectification and remapping
-    cv::Mat Left_Stereo_Map1 = imageSet.getLeftStereoMap1();
-    cv::Mat Left_Stereo_Map2 = imageSet.getLeftStereoMap2();
-    cv::Mat Right_Stereo_Map1 = imageSet.getRightStereoMap1();
-    cv::Mat Right_Stereo_Map2 = imageSet.getRightStereoMap2();
-
     //read camera matrix and dist coef to find essential matrix later
     cv::Mat camMatLeft = imageSet.getCamL();
     cv::Mat camMatRight = imageSet.getCamR();
@@ -91,8 +125,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     //1. remap images to remove distortion and to rectify.
     //----------------------------------------------------
     cv::Mat remappedL, remappedR;
-    cv::remap(grayL, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
-    cv::remap(grayR, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+    cv::remap(grayL, remappedL, leftStereoMap1, leftStereoMap2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+    cv::remap(grayR, remappedR, rightStereoMap1, rightStereoMap2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
 
     //-----------------------------------
     //2. Feature detection & description.
@@ -100,8 +134,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
     cv::Mat descriptorLeft, descriptorRight;
 
-    detectFeatures(remappedL, remappedL, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
-    describeFeatures(remappedR, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
+    detectFeatures(remappedL, remappedR, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
+    describeFeatures(remappedL, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
 
     //--------------------------------------------------------------------------------------
     //3. Feature matching for left and right image. If possible also for consecutive images.
@@ -136,6 +170,14 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
             throw std::invalid_argument("Not enough matches to calculate camera pose.");
         }
 
+//        //display matches and draw line
+//        cv::Mat imageWithMatchesLeftRight;
+//        std::vector<char> mask(matchesLeftRight.size(), 1);
+//        cv::drawMatches(remappedL, keyPointVectorLeft, remappedR, keyPointVectorRight, matchesLeftRight,imageWithMatchesLeftRight,cv::Scalar::all(-1), cv::Scalar::all(-1), mask, cv::DrawMatchesFlags::DEFAULT);
+//        cv::imshow("Matches Left and Right", imageWithMatchesLeftRight);
+//        cv::waitKey(5000);
+//        cv::destroyAllWindows();
+
         //-------------------------------------------------------------------------------------------
         //4. find essential matrix, recover pose and get triangulated points as cartesian coordinates
         //-------------------------------------------------------------------------------------------
@@ -145,11 +187,12 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
 
         std::vector<cv::Point3f> points3DIn_Right;
         std::vector<cv::Point2f> prevMatchesIn_Right, currMatchesIn_Right;
-        calc3DPointsOfInliers(previousMatchesRight, currentMatchesRight, camMatRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right);
+        calc3DPointsOfInliers(previousMatchesRight, currentMatchesRight, camMatRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right);        
 
         //-------------------------------------
         //5. Calculate rotation and translation
         //-------------------------------------
+
         if(prevMatchesIn_Left.size() <= 5 && currMatchesIn_Left.size() <= 5 && prevMatchesIn_Right.size() <= 5 && currMatchesIn_Right.size() <= 5){
             throw std::invalid_argument("Not enough matches ater inliers filter.");
         }
@@ -161,8 +204,10 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
         //solvePnPRansac for right to get rotation vector and translation vector
         cv::solvePnPRansac(points3DIn_Right, currMatchesIn_Right, camMatRight, emptyDistCoeff, rVec_Right, tVec_Right);
 
-//        drawInliers(prevImageLeft, currImageLeft, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left, rVec_Left, tVec_Left, camMatLeft, distCoefLeft);
-//        drawInliers(prevImageRight, currImageRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right, rVec_Right, tVec_Right, camMatRight, distCoefRight);
+//        cv::Mat distCoefLeft = imageSet.getDistCoefL();
+//        cv::Mat distCoefRight = imageSet.getDistCoefR();
+//        drawInliers(prevImageLeft, remappedL, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left, rVec_Left, tVec_Left, camMatLeft, distCoefLeft);
+//        drawInliers(prevImageRight, remappedR, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right, rVec_Right, tVec_Right, camMatRight, distCoefRight);
 
         //----------------------------------------------------------------------------------------
         //6. Determining the motion of the camera in world coordinates (cam_world = -inverse(R)*t)
@@ -182,7 +227,8 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
         //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
         addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
 
-    }catch(std::exception e){
+    }catch(const std::exception& e){
+        std::cout << e.what() << std::endl;
         //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
         addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
     }
@@ -223,7 +269,8 @@ void ImageProcessor::detectFeatures(cv::Mat remappedL, cv::Mat remappedR, std::v
     std::cout << "RightKeyPointVector: " << keyPointVectorRight.size() << std::endl;
 }
 
-void ImageProcessor::describeFeatures(cv::Mat remappedL, cv::Mat remappedR, cv::Mat &descriptorLeft, cv::Mat &descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescription){
+void ImageProcessor::describeFeatures(cv::Mat remappedL, cv::Mat remappedR, cv::Mat &descriptorLeft, cv::Mat &descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescription)
+{
     //error handling in general
 
     QElapsedTimer descriptorTimer;
@@ -238,7 +285,18 @@ void ImageProcessor::describeFeatures(cv::Mat remappedL, cv::Mat remappedR, cv::
     descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 }
 
-void ImageProcessor::featureMatching(cv::Mat descriptorLeft, cv::Mat descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescriptor, int selectedFeatureMatching, std::vector<cv::DMatch> &matchesLeftRight, std::vector<cv::KeyPoint> &matchedKeyPointsLeft_tMinus1, std::vector<cv::KeyPoint> &matchedKeyPointsLeft_t, std::vector<cv::KeyPoint> &matchedKeyPointsRight_tMinus1, std::vector<cv::KeyPoint> &matchedKeyPointsRight_t){
+void ImageProcessor::featureMatching(cv::Mat descriptorLeft,
+                                     cv::Mat descriptorRight,
+                                     std::vector<cv::KeyPoint> keyPointVectorLeft,
+                                     std::vector<cv::KeyPoint> keyPointVectorRight,
+                                     int selectedFeatureDescriptor,
+                                     int selectedFeatureMatching,
+                                     std::vector<cv::DMatch> &matchesLeftRight,
+                                     std::vector<cv::KeyPoint> &matchedKeyPointsLeft_tMinus1,
+                                     std::vector<cv::KeyPoint> &matchedKeyPointsLeft_t,
+                                     std::vector<cv::KeyPoint> &matchedKeyPointsRight_tMinus1,
+                                     std::vector<cv::KeyPoint> &matchedKeyPointsRight_t)
+{
 
     std::vector<cv::KeyPoint> matchedKeyPointsLeft, matchedKeyPointsRight;
     cv::Mat matchedDescriptorsLeft, matchedDescriptorsRight;
@@ -320,24 +378,36 @@ void ImageProcessor::featureMatching(cv::Mat descriptorLeft, cv::Mat descriptorR
     }
 }
 
-void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMatches, std::vector<cv::KeyPoint> currentMatches, cv::Mat camMat, std::vector<cv::Point2f> &prevMatchesIn, std::vector<cv::Point2f> &currMatchesIn, std::vector<cv::Point3f> &points3DInliers){
-    cv::Mat E, mask;
-
+void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMatches,
+                                           std::vector<cv::KeyPoint> currentMatches,
+                                           cv::Mat camMat,
+                                           std::vector<cv::Point2f> &prevMatchesIn,
+                                           std::vector<cv::Point2f> &currMatchesIn,
+                                           std::vector<cv::Point3f> &points3DInliers)
+{
     std::vector<cv::Point2f> keyPointsCurrent, keyPointsPrevious;
+    std::vector<cv::Point2f> currMatchesGood, prevMatchesGood;
     cv::KeyPoint::convert(previousMatches, keyPointsPrevious, std::vector<int>());
     cv::KeyPoint::convert(currentMatches, keyPointsCurrent, std::vector<int>());
 
-    E = cv::findEssentialMat(keyPointsPrevious, keyPointsCurrent, camMat, cv::RANSAC, 0.999, 1.0, mask);
+    //filter only good
+    for(int i = 0; i < keyPointsPrevious.size(); i++){
+       prevMatchesGood.push_back(keyPointsPrevious[i]);
+       currMatchesGood.push_back(keyPointsCurrent[i]);
+    }
+
+    cv::Mat E, mask;
+    E = cv::findEssentialMat(prevMatchesGood, currMatchesGood, camMat, cv::RANSAC, 0.999, 1.0, mask);
+    std::cout << "inliers E: " << sum(mask) << std::endl;
 
     //recover pose
-    cv::Mat R, t;
-    cv::Mat points3D_homogeneous;
-    int inlierPose;
-    inlierPose = cv::recoverPose(E, keyPointsPrevious, keyPointsCurrent, camMat, R, t, 50, mask, points3D_homogeneous);
+    cv::Mat R, t, points3D_homogeneous;
+    int inliers = cv::recoverPose(E, prevMatchesGood, currMatchesGood, camMat, R, t, 50, mask, points3D_homogeneous);
+    std::cout << "inliers after recoverPose: " << inliers << std::endl;
 
     //convert points to cartesian
-    std::vector<cv::Point3f> points3D;
     cv::Point3f point;
+    std::vector<cv::Point3f> points3D;
     for(int i = 0; i < points3D_homogeneous.cols; i++)
     {
       point.x = points3D_homogeneous.at<double>(0, i) / points3D_homogeneous.at<double>(3, i);
@@ -347,16 +417,26 @@ void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMat
     }
 
     //filter only inliers
-    for(int i = 0; i < keyPointsPrevious.size(); i++){
+    for(int i = 0; i < int(keyPointsPrevious.size()); i++){
       if(mask.at<bool>(i,0) == 1){
         prevMatchesIn.push_back(keyPointsPrevious[i]);
         currMatchesIn.push_back(keyPointsCurrent[i]);
         points3DInliers.push_back(points3D[i]);
       }
     }
+
 }
 
-void ImageProcessor::drawInliers(cv::Mat prevImage, cv::Mat currImage, std::vector<cv::Point2f> prevMatchesIn, std::vector<cv::Point2f> currMatchesIn, std::vector<cv::Point3f> points3DIn, cv::Mat r, cv::Mat t, cv::Mat camMat, cv::Mat distCoef){
+void ImageProcessor::drawInliers(cv::Mat prevImage,
+                                 cv::Mat currImage,
+                                 std::vector<cv::Point2f> prevMatchesIn,
+                                 std::vector<cv::Point2f> currMatchesIn,
+                                 std::vector<cv::Point3f> points3DIn,
+                                 cv::Mat r,
+                                 cv::Mat t,
+                                 cv::Mat camMat,
+                                 cv::Mat distCoef)
+{
 
     //circle matches in images
     cv::Mat prevImageClone = prevImage.clone();
@@ -374,16 +454,16 @@ void ImageProcessor::drawInliers(cv::Mat prevImage, cv::Mat currImage, std::vect
         cv::circle(currImageClone, cv::Point(projectedPoints[i]), 3, cv::Scalar(255, 0, 0), -1);
     }
 
-    cv::imshow("prev Left", prevImageClone);
-    cv::imshow("curr Left (blue being reprojected points)", currImageClone);
+    cv::imshow("prev", prevImageClone);
+    cv::imshow("curr (blue being reprojected points)", currImageClone);
     cv::waitKey(10000);
     cv::destroyAllWindows();
 }
 
-void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec){
+void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec)
+{
     cv::Mat R = cv::Mat(3, 3, CV_64F, double(0));;
     cv::Rodrigues(rvec, R);
-
     R = R.t();
     tvec = -R * tvec;
 
@@ -399,7 +479,8 @@ void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec){
 //    T(cv::Range(0,3), cv::Range(3,4) ) = tvec;
 }
 
-std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection){
+std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection)
+{
     std::vector<cv::KeyPoint> keyPointVector;
 
     //1. Feature detection for both stereo pair images
@@ -407,7 +488,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
     switch (selectedFeatureDetection) {
     case 1:{
         //ORB - Oriented FAST and Rotated BRIEF
-        cv::Ptr<cv::ORB> orb = cv::ORB::create();
+        cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
         orb->detect(remapped, keyPointVector, cv::Mat());
 
         selectedDetector = "ORB";
@@ -433,7 +514,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
         break;
     }
     case 4:{
-        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create();
+        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create(2000);
         sift->detect(remapped, keyPointVector, cv::Mat());
 
         selectedDetector = "SIFT";
@@ -441,7 +522,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
         break;
     }
     case 5:{
-        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create();
+        cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create(400);
         surf->detect(remapped, keyPointVector, cv::Mat());
 
         selectedDetector = "SURF";
@@ -455,7 +536,8 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
     return keyPointVector;
 }
 
-cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<cv::KeyPoint> keyPointVector, int selectedFeatureDescription){
+cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<cv::KeyPoint> keyPointVector, int selectedFeatureDescription)
+{
     //1.2 Feature description for both images
     //1=ORB, 2=BRIEF, 3=BRISK, 4=SIFT, 5=SURF
     cv::Mat descriptor;
@@ -513,16 +595,17 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
     return descriptor;
 }
 
-std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int selectedFeatureDescription ,int SelectedFeatureMatching){
+std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int selectedFeatureDescription ,int SelectedFeatureMatching)
+{
     std::vector<std::vector<cv::DMatch>> matches;
     std::vector<cv::DMatch> goodMatches;
 
     //check if number of features in both vectors is equal or greater than number of nearest neighbors in knn match.
     //else knn match will throw an error
-    if((descriptorOne.rows >= 2) && (descriptorTwo.rows >= 2)){
+    if((descriptorOne.rows >= 6) && (descriptorTwo.rows >= 6)){
 
         //matching ratio
-        const float ratio = 0.7;
+        const float ratio = 0.9;
 
         switch (SelectedFeatureMatching) {
         case 1:{
@@ -530,7 +613,7 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
             selectedMatcher = "Brute-Force";
 
             //specifies the distance measurement to be used. Default cv::NORM_L2
-            int normType = cv::NORM_L2;
+            //int normType = cv::NORM_L2;
 
             //If it is true, Matcher returns only those matches with value (i,j)
             //such that i-th descriptor in set A has j-th descriptor in set B as the best match and vice-versa.
@@ -538,37 +621,33 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
             //and is a good alternative to ratio test proposed by D.Lowe in SIFT paper.
             //false by default.
             //https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
-            int crossCheck = false;
+            //int crossCheck = false;
 
             switch (selectedFeatureDescription) {
             case 1:
             case 2:
             case 3:{
+                //https://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html
                 //best values for orb, brief or brisk descriptors
-                normType = cv::NORM_HAMMING;
-                crossCheck = true;
+                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
 
-                //use matcher with normtype and crosscheck
-                cv::BFMatcher matcher(normType, crossCheck);
-                matcher.match(descriptorOne, descriptorTwo, goodMatches);
+                for(int i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()))
+                        goodMatches.push_back(matches[i][0]);
 
                 break;
             }
             case 4:
             case 5:{
                 //use default values and knnMatch for sift or surf
-                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create();
-                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 2);
+                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2, true);
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
 
                 //apply ratio test by D.Lowe
-                const float ratio_thresh = 0.75f;
                 for(size_t i = 0; i < matches.size(); i++)
-                {
-                    if(matches[i][0].distance < ratio_thresh * matches[i][1].distance)
-                    {
+                    if(!(matches[i].empty()))
                         goodMatches.push_back(matches[i][0]);
-                    }
-                }
 
                 break;
             }
@@ -589,6 +668,12 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
                 //Flann parameter. algorithm = flann indexed lsh, table_number = 12, key_size = 20, multi_probe_level = 1   #
                 cv::FlannBasedMatcher matcher (new cv::flann::LshIndexParams(12,20,2));
                 matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+                //apply ratio test by D.Lowe
+                for(size_t i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                        goodMatches.push_back(matches[i][0]);
+
                 break;
             }
             case 4:
@@ -596,20 +681,17 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
                 //Flann parameter. algorithm = kd tree, trees = 4
                 cv::FlannBasedMatcher matcher (new cv::flann::KDTreeIndexParams(5));
                 matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+                //apply ratio test by D.Lowe
+                for(size_t i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                        goodMatches.push_back(matches[i][0]);
+
                 break;
             }
             default:
 
                 break;
-            }
-
-            const float ratio_thresh = 0.75f;
-            for (size_t i = 0; i < matches.size(); i++)
-            {
-                if (matches[i].size() == 2 && (matches[i][0].distance < ratio_thresh * matches[i][1].distance))
-                {
-                    goodMatches.push_back(matches[i][0]);
-                }
             }
 
             break;
@@ -618,14 +700,6 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
             break;
         }
 
-        //Optimization of matches
-        for(size_t i = 0; i < matches.size(); i++){
-            if(matches[i].size() < 2)
-                continue;
-            if(matches[i][0].distance > ratio * matches[i][1].distance)
-                continue;
-            goodMatches.push_back(matches[i][0]);
-        }
     }
     else{
         std::cout << "Less than two features found in at least one descriptor." << std::endl;
@@ -634,18 +708,21 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
     return goodMatches;
 }
 
-void ImageProcessor::createNewTrackingFile(){
+void ImageProcessor::createNewTrackingFile()
+{
     std::string fileName = "VO_" + DirectoryManager().getCurrentDateAsString();
     std::string fileType = ".txt";
     this->trackingFile.open("/home/daniel/ZAR/trackingFiles/" + fileName + fileType, std::ios_base::app);
 }
 
-void ImageProcessor::closeTrackingFile(){
+void ImageProcessor::closeTrackingFile()
+{
     if(trackingFile.is_open())
         trackingFile.close();
 }
 
-void ImageProcessor::addLineToFile(cv::Mat tVecLeft, cv::Mat tVecRight){
-    this->trackingFile << "TL: " << tVecLeft.at<double>(0,0) << ", " << tVecLeft.at<double>(0,1) << ", " << tVecLeft.at<double>(0,2) <<
-                          ", TR: " << tVecRight.at<double>(0,0) << ", " << tVecRight.at<double>(0,1) << ", " << tVecRight.at<double>(0,2) << std::endl;
+void ImageProcessor::addLineToFile(cv::Mat tVecLeft, cv::Mat tVecRight)
+{
+    this->trackingFile << "TL: " << std::setprecision(3) << tVecLeft.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,1) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,2) * 0.001 <<
+                          ", TR: " << std::setprecision(3) << tVecRight.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,1) * 0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,2) * 0.001 << std::endl;
 }
