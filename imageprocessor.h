@@ -11,6 +11,7 @@
 #include <iostream>
 #include <QImage>
 #include <thread>
+#include <math.h>
 
 #include "imageset.h"
 #include "directorymanager.h"
@@ -25,6 +26,7 @@ public:
     void createNewTrackingFile();
 
     QImage prepImageForDisplay(cv::Mat&);
+    QImage generateAnaglyphImage(cv::Mat, cv::Mat);
     void cannyEdgeOnImagePair(cv::Mat&, cv::Mat&);
     void stereoVisualOdometry(cv::Mat, cv::Mat);
 
@@ -85,6 +87,16 @@ private:
     std::vector<cv::DMatch> featureMatchingMethod(cv::Mat, cv::Mat, int, int);
 
     ImageSet imageSet;
+
+    //stereo maps for remapping
+    cv::Mat leftStereoMap1;
+    cv::Mat leftStereoMap2;
+    cv::Mat rightStereoMap1;
+    cv::Mat rightStereoMap2;
+
+    //"/home/daniel/ZAR/ImageSets/22-04-2021-08-15-15"
+    //"/home/daniel/ZAR/ImageSets/22-07-2021-08-44-39"
+    std::string selectedImageSet = "/home/daniel/ZAR/ImageSets/22-07-2021-08-44-39";
 
     std::ofstream trackingFile;
 
