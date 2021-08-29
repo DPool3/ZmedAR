@@ -5,6 +5,7 @@
 
 #include "videobasedview.h"
 #include "camerabasedview.h"
+#include "anaglyph3dview.h"
 #include "imagesetdialog.h"
 #include "stereocalibration.h"
 
@@ -29,6 +30,8 @@ private slots:
     void on_videoBased_button_clicked();
 
     void on_cameraBased_button_clicked();
+
+    void on_anaglyph3DButton_clicked();
 
 public slots:
 

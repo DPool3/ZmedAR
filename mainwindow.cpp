@@ -44,3 +44,10 @@ void MainWindow::on_cameraBased_button_clicked()
     cbd.setModal(true);
     cbd.exec();
 }
+
+void MainWindow::on_anaglyph3DButton_clicked()
+{
+    Anaglyph3DView a3dv;
+    a3dv.setModal(true);
+    a3dv.exec();
+}
