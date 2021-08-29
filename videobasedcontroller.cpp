@@ -25,8 +25,8 @@ void VideoBasedController::reinitVideoBasedController(int detector, int descript
 }
 
 void VideoBasedController::getVideoFrames(){
-    this->captureLeft >> this->imageLeft;
-    this->captureRight >> this->imageRight;
+//    this->captureLeft >> this->imageLeft;
+//    this->captureRight >> this->imageRight;
 
     if(imageLeft.empty() || imageRight.empty()){
         stop();
