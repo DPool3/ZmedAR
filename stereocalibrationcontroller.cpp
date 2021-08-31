@@ -277,7 +277,6 @@ void StereoCalibrationController::getCalibrationInfo(
 
 void StereoCalibrationController::getImagesForDisplay(QImage& qImageLeft, QImage& qImageRight){
     //access new image for display
-
     cv::resize(this->displayImageLeft, this->displayImageLeft, cv::Size(480, 320), 0, 0);
     cv::resize(this->displayImageRight, this->displayImageRight, cv::Size(480, 320), 0, 0);
 
