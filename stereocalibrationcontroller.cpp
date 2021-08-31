@@ -1,89 +1,50 @@
-#include "stereocalibration.h"
-#include "ui_stereocalibration.h"
+#include "stereocalibrationcontroller.h"
 
-StereoCalibration::StereoCalibration(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::StereoCalibration)
+StereoCalibrationController::StereoCalibrationController()
 {
-    ui->setupUi(this);
 
-    //loadImageSet();
 }
 
-StereoCalibration::~StereoCalibration()
-{
-    delete ui;
+bool StereoCalibrationController::loadImageSet(){
+    //Seach yaml file of image set
+    imageSetPath = DialogManager().getPathFromFileSystem();
+    //delete yaml file from string
+    std::string path = splitFileName(imageSetPath.toStdString());
+
+    //load image set
+    if(!(path == "")){
+        imageSet = ImageSet(path);
+    }
+    else{
+        return false;
+    }
+
+    return true;
 }
 
-void StereoCalibration::on_startCalibration_button_clicked()
-{
-    lockUi();
-
+bool StereoCalibrationController::startStereoCalibration(){
+    //load image set
     try{
         //check if an image set has been loaded
         if(imageSet.getPath() != ""){
-            //perform the stereo calibration
-            std::thread t(&StereoCalibration::performSteroCalibration, this);
+            //perform the stereo calibration (can not be stopped)
+            std::thread t(&StereoCalibrationController::performSteroCalibration, this);
             t.detach();
+
+            calibrationRunning = true;
         }
         else{
             throw std::invalid_argument("Error: Kein Image Set wurde ausgewählt. Bitte wählen Sie ein Image Set aus und starten Sie den Prozess erneut.");
         }
     }catch(const std::exception& e){
         DialogManager().callErrorDialog(e.what());
-        releaseUi();
+        return false;
     }
+
+    return true;
 }
 
-void StereoCalibration::on_searchFile_button_clicked()
-{
-    //Seach yaml file of image set
-    QString qPath = DialogManager().getPathFromFileSystem();
-    //Set line edit
-    ui->lineEdit->setText(qPath);
-    //load image set
-    loadImageSet(qPath.toStdString());
-}
-
-void StereoCalibration::on_displayImages_checkbox_toggled(bool checked)
-{
-    this->showImages = checked;
-}
-
-void StereoCalibration::loadImageSet(std::string pathWithAddition){
-    //delete yaml file from string
-    std::string path = splitFileName(pathWithAddition);
-
-    //If path is not empty
-    if(!path.empty()){
-        //Load imageSet for further use
-        imageSet = ImageSet(path);
-        //Set image set data in ui
-        setImageSetDataInUi();
-    }
-}
-
-void StereoCalibration::setImageSetDataInUi(){
-    ui->numberImages_spinbox->setValue(imageSet.getNumberOfImages());
-    ui->numbeRows_spinbox->setValue(imageSet.getRows());
-    ui->numberColumns_spinbox->setValue(imageSet.getColumns());
-    ui->squareSize_spinbox->setValue(imageSet.getSquareSize());
-    ui->patternType_lineEdit->setText(QString::fromStdString(imageSet.getPatternType()));
-    ui->reprojectionError_spinbox->setValue(imageSet.getReprojectionError());
-}
-
-void StereoCalibration::on_resizeFactorSpinBox_valueChanged(double newResizeFactor)
-{
-    this->resizeFactor = newResizeFactor;
-}
-
-std::string StereoCalibration::splitFileName(const std::string& str){
-    std::size_t found = str.find_last_of("/\\");
-    return str.substr(0,found);
-}
-
-void StereoCalibration::performSteroCalibration()
-{
+void StereoCalibrationController::performSteroCalibration(){
     // Creating vector to store vectors of 3D points for each checkerboard image
     std::vector< std::vector< cv::Point3f > > object_points;
     // Creating vector to store vectors of 2D points for each checkerboard image
@@ -146,8 +107,6 @@ void StereoCalibration::performSteroCalibration()
                         R, T, E, F,
                         flag, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6));
 
-    ui->reprojectionError_spinbox->setValue(stereoReprojectionError);
-
     cv::stereoRectify(new_CamL, DistCoefL, new_CamR, DistCoefR, grayR.size(), R, T, rect_l, rect_r, proj_mat_l, proj_mat_r, Q, 1);
 
     cv::initUndistortRectifyMap(new_CamL, DistCoefL, rect_l, proj_mat_l, grayL.size(), CV_16SC2, Left_Stereo_Map1, Left_Stereo_Map2);
@@ -156,7 +115,9 @@ void StereoCalibration::performSteroCalibration()
     cv::remap(imgL, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imgR, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
 
-    displayImages(remappedL, remappedR);
+    this->displayImageLeft = remappedL;
+    this->displayImageRight = remappedR;
+    this->newImagesForDisplay = true;
 
     //store all the calibration data in a YAML file.
     imageSet.setReprojectionError(stereoReprojectionError);
@@ -180,23 +141,22 @@ void StereoCalibration::performSteroCalibration()
     imageSet.setLeftStereoMap2(Left_Stereo_Map2);
     imageSet.setRightStereoMap2(Right_Stereo_Map2);
 
-    releaseUi();
+    calibrationRunning = false;
 
     //src::https://learnopencv.com/making-a-low-cost-stereo-camera-using-opencv/
 }
 
-//loadImgPoints is used to find all the corner points of each image and theri corresponding 3D world point
-void StereoCalibration::loadImgPoints(
-    int board_width,
-    int board_height,
-    int num_imgs,
-    float square_size,
-    std::string path,
-    std::string fileType,
-    std::string patternType,
-    std::vector< std::vector< cv::Point3f > >& object_points,
-    std::vector< std::vector< cv::Point2f > >& imagePointsL,
-    std::vector< std::vector< cv::Point2f > >& imagePointsR)
+void StereoCalibrationController::loadImgPoints(
+        int board_width,
+        int board_height,
+        int num_imgs,
+        float square_size,
+        std::string path,
+        std::string fileType,
+        std::string patternType,
+        std::vector< std::vector< cv::Point3f > >& object_points,
+        std::vector< std::vector< cv::Point2f > >& imagePointsL,
+        std::vector< std::vector< cv::Point2f > >& imagePointsR)
 {
     // vector to store the pixel coordinates of detected checker board corners
     std::vector< cv::Point2f > cornersL, cornersR;
@@ -230,30 +190,21 @@ void StereoCalibration::loadImgPoints(
         cv::cvtColor(imgL, grayL, cv::COLOR_RGB2GRAY);
         cv::cvtColor(imgR, grayR, cv::COLOR_RGB2GRAY);
 
-        //resized images left and right for faster findChessBoardCorners an circles
-        if(resizeFactor != 1.0){
-            cv::resize(grayL, grayL, cv::Size(grayL.cols*resizeFactor,grayL.rows*resizeFactor),0,0);
-            cv::resize(grayR, grayR, cv::Size(grayR.cols*resizeFactor,grayR.rows*resizeFactor),0,0);
-
-            cv::resize(imgL, imgL, cv::Size(imgL.cols*resizeFactor,imgL.rows*resizeFactor),0,0);
-            cv::resize(imgR, imgR, cv::Size(imgR.cols*resizeFactor,imgR.rows*resizeFactor),0,0);
-        }
-
         if(patternType == "chessboard"){
-            std::thread tl(&StereoCalibration::findChessBoardCorners, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
-            std::thread tr(&StereoCalibration::findChessBoardCorners, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
+            std::thread tl(&StereoCalibrationController::findChessBoardCorners, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
+            std::thread tr(&StereoCalibrationController::findChessBoardCorners, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
             tl.join();
             tr.join();
         }
         else if(patternType == "circle"){
-            std::thread tl(&StereoCalibration::findCircleGridSym, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
-            std::thread tr(&StereoCalibration::findCircleGridSym, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
+            std::thread tl(&StereoCalibrationController::findCircleGridSym, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
+            std::thread tr(&StereoCalibrationController::findCircleGridSym, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
             tl.join();
             tr.join();
         }
         else if(patternType == "circle asymmetrical"){
-            std::thread tl(&StereoCalibration::findCircleGridAsym, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
-            std::thread tr(&StereoCalibration::findCircleGridAsym, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
+            std::thread tl(&StereoCalibrationController::findCircleGridAsym, this, grayL, board_size, std::ref(cornersL), std::ref(foundL));
+            std::thread tr(&StereoCalibrationController::findCircleGridAsym, this, grayR, board_size, std::ref(cornersR), std::ref(foundR));
             tl.join();
             tr.join();
         }
@@ -264,7 +215,7 @@ void StereoCalibration::loadImgPoints(
         if (foundL && foundR) {
             std::cout << "Corners found for image " << i << endl;
 
-            if(this->showImages && patternType == "chessboard"){
+            if(patternType == "chessboard"){
 
                 cv::TermCriteria criteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 30, 0.001);
 
@@ -277,8 +228,10 @@ void StereoCalibration::loadImgPoints(
                 cv::drawChessboardCorners(tempLeft, board_size, cornersL, foundL);
                 cv::drawChessboardCorners(tempRight, board_size, cornersR, foundR);
 
-                std::thread td(&StereoCalibration::displayImages, this, tempLeft, tempRight);
-                td.detach();
+                //prepare new images for display
+                this->displayImageLeft = tempLeft;
+                this->displayImageRight = tempRight;
+                newImagesForDisplay = true;
             }
 
             imagePointsL.push_back(cornersL);
@@ -295,52 +248,66 @@ void StereoCalibration::loadImgPoints(
     }
 }
 
-void StereoCalibration::displayImages(cv::Mat imageLeft, cv::Mat imageRight){
-        //Resize Images
-        cv::resize(imageLeft, imageLeft, cv::Size(480, 320), 0, 0);
-        cv::resize(imageRight, imageRight, cv::Size(480, 320), 0, 0);
-
-        //Change to RGB format & save it in global Mat
-        cv::cvtColor(imageLeft, imageLeft, cv::COLOR_BGR2RGB);
-        cv::cvtColor(imageRight, imageRight, cv::COLOR_BGR2RGB);
-
-        //Convert to QImage
-        QImage qimgLeft((const unsigned char*) imageLeft.data, imageLeft.cols, imageLeft.rows, QImage::Format_RGB888);
-        QImage qimgRight((const unsigned char*) imageRight.data, imageRight.cols, imageRight.rows, QImage::Format_RGB888);
-
-        //Display on Input Label
-        ui->videoLabelLeft->setPixmap(QPixmap::fromImage(qimgLeft));
-        ui->videoLabelRight->setPixmap(QPixmap::fromImage(qimgRight));
-
-        //Resize the label to fit the image
-        ui->videoLabelLeft->resize(ui->videoLabelLeft->pixmap()->size());
-        ui->videoLabelRight->resize(ui->videoLabelRight->pixmap()->size());
-}
-
-void StereoCalibration::findCircleGridSym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
+void StereoCalibrationController::findCircleGridSym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
     found = cv::findCirclesGrid(img, board_size, corners, cv::CALIB_CB_SYMMETRIC_GRID);
 }
 
-void StereoCalibration::findCircleGridAsym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
+void StereoCalibrationController::findCircleGridAsym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
     found = cv::findCirclesGrid(img, board_size, corners, cv::CALIB_CB_ASYMMETRIC_GRID);
 }
 
-void StereoCalibration::findChessBoardCorners(cv::Mat img, cv::Size board_size, std::vector<cv::Point2f> & corners, bool & found){
+void StereoCalibrationController::findChessBoardCorners(cv::Mat img, cv::Size board_size, std::vector<cv::Point2f> & corners, bool & found){
     found = cv::findChessboardCorners(img, board_size, corners);
 }
 
-void StereoCalibration::lockUi(){
-    ui->startCalibration_button->setText(QString::fromStdString("Stereokalibrierung läuft"));
-    ui->startCalibration_button->setEnabled(false);
-    ui->displayImages_checkbox->setEnabled(false);
-    ui->searchFile_button->setEnabled(false);
-    ui->resizeFactorSpinBox->setEnabled(false);
+void StereoCalibrationController::getCalibrationInfo(
+        int& board_width,
+        int& board_height,
+        int& num_imgs,
+        float& square_size,
+        std::string& patternType,
+        double& stereoReprojectionError){
+    board_width = imageSet.getColumns();
+    board_height = imageSet.getRows();
+    num_imgs = imageSet.getNumberOfImages();
+    square_size = imageSet.getSquareSize();
+    patternType = imageSet.getPatternType();
+    stereoReprojectionError = imageSet.getReprojectionError();
 }
 
-void StereoCalibration::releaseUi(){
-    ui->startCalibration_button->setText(QString::fromStdString("Stereokalibrierung starten"));
-    ui->startCalibration_button->setEnabled(true);
-    ui->displayImages_checkbox->setEnabled(true);
-    ui->searchFile_button->setEnabled(true);
-    ui->resizeFactorSpinBox->setEnabled(true);
+void StereoCalibrationController::getImagesForDisplay(QImage& qImageLeft, QImage& qImageRight){
+    //access new image for display
+
+    cv::resize(this->displayImageLeft, this->displayImageLeft, cv::Size(480, 320), 0, 0);
+    cv::resize(this->displayImageRight, this->displayImageRight, cv::Size(480, 320), 0, 0);
+
+    //Change to RGB format & save it in global Mat
+    cv::cvtColor(this->displayImageLeft, this->displayImageLeft, cv::COLOR_BGR2RGB);
+    cv::cvtColor(this->displayImageRight, this->displayImageRight, cv::COLOR_BGR2RGB);
+
+    //Convert to QImage
+    QImage ql((const unsigned char*) this->displayImageLeft.data, this->displayImageLeft.cols, this->displayImageLeft.rows, QImage::Format_RGB888);
+    QImage qr((const unsigned char*) this->displayImageRight.data, this->displayImageRight.cols, this->displayImageRight.rows, QImage::Format_RGB888);
+
+    qImageLeft = ql;
+    qImageRight = qr;
+
+    newImagesForDisplay = false;
+}
+
+QString StereoCalibrationController::getImageSetPath(){
+    return this->imageSetPath;
+}
+
+bool StereoCalibrationController::checkNewImageForDisplay(){
+    return this->newImagesForDisplay;
+}
+
+bool StereoCalibrationController::checkCalibrationRunning(){
+    return this->calibrationRunning;
+}
+
+std::string StereoCalibrationController::splitFileName(const std::string& str){
+    std::size_t found = str.find_last_of("/\\");
+    return str.substr(0,found);
 }

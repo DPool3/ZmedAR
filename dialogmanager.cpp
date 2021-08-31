@@ -20,7 +20,7 @@ void DialogManager::callErrorDialog(const char* errorMsg){
 }
 
 QString DialogManager::getPathFromFileSystem(){
-    FileSystem fsd;
+    FileSystemDialog fsd;
     fsd.setModal(true);
     fsd.exec();
     return fsd.getSelectedFile();

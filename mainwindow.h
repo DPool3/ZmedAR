@@ -7,7 +7,7 @@
 #include "camerabasedview.h"
 #include "anaglyph3dview.h"
 #include "imagesetdialog.h"
-#include "stereocalibration.h"
+#include "stereocalibrationview.h"
 
 namespace Ui {
 class MainWindow;

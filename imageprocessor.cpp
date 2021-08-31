@@ -193,9 +193,9 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
         //5. Calculate rotation and translation
         //-------------------------------------
 
-        if(prevMatchesIn_Left.size() <= 5 && currMatchesIn_Left.size() <= 5 && prevMatchesIn_Right.size() <= 5 && currMatchesIn_Right.size() <= 5){
-            throw std::invalid_argument("Not enough matches ater inliers filter.");
-        }
+//        if(prevMatchesIn_Left.size() <= 5 || currMatchesIn_Left.size() <= 5 || prevMatchesIn_Right.size() <= 5 || currMatchesIn_Right.size() <= 5){
+//            throw std::invalid_argument("Not enough matches after inliers filter.");
+//        }
 
         //solvePnPRansac for left to get rotation vector and translation vector
         cv::Mat emptyDistCoeff;
@@ -276,8 +276,8 @@ void ImageProcessor::describeFeatures(cv::Mat remappedL, cv::Mat remappedR, cv::
     QElapsedTimer descriptorTimer;
     descriptorTimer.start();
 
-    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescriptor);});
-    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescriptor);});
+    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescription);});
+    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescription);});
     t1descript.join();
     t2descript.join();
 
@@ -370,7 +370,7 @@ void ImageProcessor::featureMatching(cv::Mat descriptorLeft,
         prevDescriptorLeft = matchedDescriptorsRight;
         prevDescriptorRight = matchedDescriptorsRight;
 
-    }catch(std::exception e){
+    }catch(const std::exception& e){
         prevKeypointsLeft = matchedKeyPointsLeft;
         prevKeypointsRight = matchedKeyPointsRight;
         prevDescriptorLeft = matchedDescriptorsRight;
@@ -391,7 +391,7 @@ void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMat
     cv::KeyPoint::convert(currentMatches, keyPointsCurrent, std::vector<int>());
 
     //filter only good
-    for(int i = 0; i < keyPointsPrevious.size(); i++){
+    for(int i = 0; i < (int)keyPointsPrevious.size(); i++){
        prevMatchesGood.push_back(keyPointsPrevious[i]);
        currMatchesGood.push_back(keyPointsCurrent[i]);
     }
@@ -441,7 +441,7 @@ void ImageProcessor::drawInliers(cv::Mat prevImage,
     //circle matches in images
     cv::Mat prevImageClone = prevImage.clone();
     cv::Mat currImageClone = currImage.clone();
-    for(int i = 0; i < prevMatchesIn.size(); i++){
+    for(int i = 0; i < (int)prevMatchesIn.size(); i++){
         cv::circle(prevImageClone, prevMatchesIn[i], 3, cv::Scalar(0, 255, 0), -1);
         cv::circle(currImageClone, currMatchesIn[i], 3, cv::Scalar(0, 0, 255), -1);
     }
@@ -450,7 +450,7 @@ void ImageProcessor::drawInliers(cv::Mat prevImage,
     std::vector<cv::Point2f> projectedPoints;
     cv::projectPoints(points3DIn, r, t, camMat, distCoef, projectedPoints);
 
-    for(int i = 0; i < projectedPoints.size(); i++){
+    for(int i = 0; i < (int)projectedPoints.size(); i++){
         cv::circle(currImageClone, cv::Point(projectedPoints[i]), 3, cv::Scalar(255, 0, 0), -1);
     }
 
@@ -600,109 +600,76 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
     std::vector<std::vector<cv::DMatch>> matches;
     std::vector<cv::DMatch> goodMatches;
 
+    //matching ratio for D.Lowe
+    const float ratio = 0.9;
+
     //check if number of features in both vectors is equal or greater than number of nearest neighbors in knn match.
     //else knn match will throw an error
-    if((descriptorOne.rows >= 6) && (descriptorTwo.rows >= 6)){
+    if((descriptorOne.rows < 6) || (descriptorTwo.rows < 6)){
+        std::cout << "Less than two features found in at least one descriptor." << std::endl;
+    }
 
-        //matching ratio
-        const float ratio = 0.9;
+    if(SelectedFeatureMatching == 1){
+        //Brute-Force Matcher
+        selectedMatcher = "Brute-Force";
 
-        switch (SelectedFeatureMatching) {
-        case 1:{
-            //Brute-Force Matcher
-            selectedMatcher = "Brute-Force";
+        //specifies the distance measurement to be used. Default cv::NORM_L2
+        //int normType = cv::NORM_L2;
 
-            //specifies the distance measurement to be used. Default cv::NORM_L2
-            //int normType = cv::NORM_L2;
+        //If it is true, Matcher returns only those matches with value (i,j)
+        //such that i-th descriptor in set A has j-th descriptor in set B as the best match and vice-versa.
+        //That is, the two features in both sets should match each other. It provides consistent result,
+        //and is a good alternative to ratio test proposed by D.Lowe in SIFT paper.
+        //false by default.
+        //https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
+        //int crossCheck = false;
 
-            //If it is true, Matcher returns only those matches with value (i,j)
-            //such that i-th descriptor in set A has j-th descriptor in set B as the best match and vice-versa.
-            //That is, the two features in both sets should match each other. It provides consistent result,
-            //and is a good alternative to ratio test proposed by D.Lowe in SIFT paper.
-            //false by default.
-            //https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
-            //int crossCheck = false;
+        if(selectedFeatureDescription < 4){
+            //https://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html
+            //best values for orb, brief or brisk descriptors
+            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
+            matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
 
-            switch (selectedFeatureDescription) {
-            case 1:
-            case 2:
-            case 3:{
-                //https://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html
-                //best values for orb, brief or brisk descriptors
-                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
-                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
-
-                for(int i = 0; i < matches.size(); i++)
-                    if(!(matches[i].empty()))
-                        goodMatches.push_back(matches[i][0]);
-
-                break;
-            }
-            case 4:
-            case 5:{
-                //use default values and knnMatch for sift or surf
-                cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2, true);
-                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
-
-                //apply ratio test by D.Lowe
-                for(size_t i = 0; i < matches.size(); i++)
-                    if(!(matches[i].empty()))
-                        goodMatches.push_back(matches[i][0]);
-
-                break;
-            }
-            default:
-                break;
-            }
-
-            break;
+            for(int i = 0; i < (int)matches.size(); i++)
+                if(!(matches[i].empty()))
+                    goodMatches.push_back(matches[i][0]);
         }
-        case 2:{
-            //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
-            selectedMatcher = "FLANN";
+        else{
+            //use default values and knnMatch for sift or surf
+            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2, true);
+            matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
 
-            switch (selectedFeatureDescription) {
-            case 1:
-            case 2:
-            case 3: {
-                //Flann parameter. algorithm = flann indexed lsh, table_number = 12, key_size = 20, multi_probe_level = 1   #
-                cv::FlannBasedMatcher matcher (new cv::flann::LshIndexParams(12,20,2));
-                matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
-
-                //apply ratio test by D.Lowe
-                for(size_t i = 0; i < matches.size(); i++)
-                    if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
-                        goodMatches.push_back(matches[i][0]);
-
-                break;
-            }
-            case 4:
-            case 5:{
-                //Flann parameter. algorithm = kd tree, trees = 4
-                cv::FlannBasedMatcher matcher (new cv::flann::KDTreeIndexParams(5));
-                matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
-
-                //apply ratio test by D.Lowe
-                for(size_t i = 0; i < matches.size(); i++)
-                    if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
-                        goodMatches.push_back(matches[i][0]);
-
-                break;
-            }
-            default:
-
-                break;
-            }
-
-            break;
-        }
-        default:
-            break;
+            //apply ratio test by D.Lowe
+            for(size_t i = 0; i < matches.size(); i++)
+                if(!(matches[i].empty()))
+                    goodMatches.push_back(matches[i][0]);
         }
 
     }
     else{
-        std::cout << "Less than two features found in at least one descriptor." << std::endl;
+        //FLANN (Fast Library for Approximate Nearest Neighbors) Matcher
+        selectedMatcher = "FLANN";
+
+        if(selectedFeatureDescription < 4){
+            //Flann parameter. algorithm = flann indexed lsh, table_number = 12, key_size = 20, multi_probe_level = 1   #
+            cv::FlannBasedMatcher matcher (new cv::flann::LshIndexParams(12,20,2));
+            matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+            //apply ratio test by D.Lowe
+            for(size_t i = 0; i < matches.size(); i++)
+                if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                    goodMatches.push_back(matches[i][0]);
+        }
+        else{
+            //Flann parameter. algorithm = kd tree, trees = 4
+            cv::FlannBasedMatcher matcher (new cv::flann::KDTreeIndexParams(5));
+            matcher.knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+            //apply ratio test by D.Lowe
+            for(size_t i = 0; i < matches.size(); i++)
+                if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                    goodMatches.push_back(matches[i][0]);
+        }
     }
 
     return goodMatches;

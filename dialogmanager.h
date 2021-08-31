@@ -2,7 +2,7 @@
 #define DIALOGMANAGER_H
 
 #include "errordialog.h"
-#include "filesystem.h"
+#include "filesystemdialog.h"
 
 class DialogManager
 {

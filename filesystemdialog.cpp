@@ -1,9 +1,9 @@
-#include "filesystem.h"
+#include "filesystemdialog.h"
 #include "ui_filesystem.h"
 
-FileSystem::FileSystem(QWidget *parent) :
+FileSystemDialog::FileSystemDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::FileSystem)
+    ui(new Ui::FileSystemDialog)
 {
     ui->setupUi(this);
 
@@ -27,29 +27,29 @@ FileSystem::FileSystem(QWidget *parent) :
     ui->listView->setRootIndex(index);
 }
 
-FileSystem::~FileSystem()
+FileSystemDialog::~FileSystemDialog()
 {
     delete ui;
 }
 
-void FileSystem::on_treeView_clicked(const QModelIndex &index)
+void FileSystemDialog::on_treeView_clicked(const QModelIndex &index)
 {
     QString sPath = dirmodel->fileInfo(index).absoluteFilePath();
     ui->listView->setRootIndex(filemodel->setRootPath(sPath));
 }
 
-void FileSystem::on_listView_clicked(const QModelIndex &index)
+void FileSystemDialog::on_listView_clicked(const QModelIndex &index)
 {
     QString sPath = filemodel->fileInfo(index).absoluteFilePath();
     ui->lineEdit->setText(sPath);
     selectedFile = sPath;
 }
 
-void FileSystem::on_pushButton_clicked()
+void FileSystemDialog::on_pushButton_clicked()
 {
     this->accept();
 }
 
-QString FileSystem::getSelectedFile(){
+QString FileSystemDialog::getSelectedFile(){
     return this->selectedFile;
 }

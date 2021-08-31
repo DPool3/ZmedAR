@@ -7,16 +7,16 @@
 #include <QFileSystemModel>
 
 namespace Ui {
-class FileSystem;
+class FileSystemDialog;
 }
 
-class FileSystem : public QDialog
+class FileSystemDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit FileSystem(QWidget *parent = 0);
-    ~FileSystem();
+    explicit FileSystemDialog(QWidget *parent = 0);
+    ~FileSystemDialog();
 
     QString getSelectedFile();
 
@@ -26,7 +26,7 @@ private slots:
     void on_pushButton_clicked();
 
 private:
-    Ui::FileSystem *ui;
+    Ui::FileSystemDialog *ui;
     QFileSystemModel *dirmodel;
     QFileSystemModel *filemodel;
     QString selectedFile;
