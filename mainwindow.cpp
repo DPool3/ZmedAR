@@ -26,9 +26,9 @@ void MainWindow::on_stereoCalibration_button_clicked()
 
 void MainWindow::on_imageSet_button_clicked()
 {
-    ImageSetDialog isd;
-    isd.setModal(true);
-    isd.exec();
+    ImageSetView isv;
+    isv.setModal(true);
+    isv.exec();
 }
 
 void MainWindow::on_videoBased_button_clicked()

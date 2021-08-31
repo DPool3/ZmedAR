@@ -6,7 +6,7 @@
 #include "videobasedview.h"
 #include "camerabasedview.h"
 #include "anaglyph3dview.h"
-#include "imagesetdialog.h"
+#include "imagesetview.h"
 #include "stereocalibrationview.h"
 
 namespace Ui {

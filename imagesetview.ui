@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ImageSetDialog</class>
- <widget class="QDialog" name="ImageSetDialog">
+ <class>ImageSetView</class>
+ <widget name="ImageSetView" class="QDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
