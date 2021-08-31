@@ -1,5 +1,5 @@
 #include "filesystemdialog.h"
-#include "ui_filesystem.h"
+#include "ui_filesystemdialog.h"
 
 FileSystemDialog::FileSystemDialog(QWidget *parent) :
     QDialog(parent),
