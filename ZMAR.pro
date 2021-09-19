@@ -26,52 +26,60 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    anaglyph3dcontroller.cpp \
+    anaglyph3dview.cpp \
     camerabasedcontroller.cpp \
     camerabasedview.cpp \
     dialogmanager.cpp \
     directorymanager.cpp \
+    filesystemdialog.cpp \
     imageprocessor.cpp \
+    imagesetcontroller.cpp \
+    imagesetview.cpp \
         main.cpp \
         mainwindow.cpp \
     mainsettings.cpp \
     errordialog.cpp \
-    stereocalibration.cpp \
     imageset.cpp \
-    imagesetdialog.cpp \
-    filesystem.cpp \
     PylonCamera.cpp \
+    stereocalibrationcontroller.cpp \
+    stereocalibrationview.cpp \
     videobasedcontroller.cpp \
     videobasedview.cpp \
     videomanager.cpp \
     vivetracking.cpp
 
 HEADERS += \
+    anaglyph3dcontroller.h \
+    anaglyph3dview.h \
     camerabasedcontroller.h \
     camerabasedview.h \
     dialogmanager.h \
     directorymanager.h \
+    filesystemdialog.h \
     imageprocessor.h \
+    imagesetcontroller.h \
+    imagesetview.h \
         mainwindow.h \
     mainsettings.h \
     errordialog.h \
-    stereocalibration.h \
     imageset.h \
-    imagesetdialog.h \
-    filesystem.h \
     PylonCamera.h \
+    stereocalibrationcontroller.h \
+    stereocalibrationview.h \
     videobasedcontroller.h \
     videobasedview.h \
     videomanager.h \
     vivetracking.h
 
 FORMS += \
+    anaglyph3dview.ui \
     camerabasedview.ui \
+    filesystemdialog.ui \
+    imagesetview.ui \
         mainwindow.ui \
     errordialog.ui \
-    stereocalibration.ui \
-    videobased.ui \
-    imagesetdialog.ui \
-    filesystem.ui \
+    stereocalibrationview.ui \
     videobasedview.ui
 
 INCLUDEPATH += /usr/local/include/opencv4
