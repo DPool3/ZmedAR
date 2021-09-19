@@ -60,6 +60,12 @@ void VideoBasedView::lockOrReleaseUi(bool isEnabled){
     ui->detectorSpinBox->setEnabled(isEnabled);
     ui->descriptorSpinBox->setEnabled(isEnabled);
     ui->matcherSpinBox->setEnabled(isEnabled);
+    if(isEnabled){
+        ui->startVideo_button->setText("Starte Videoverarbeitung");
+    }
+    else{
+        ui->startVideo_button->setText("Video läuft ...");
+    }
 }
 
 void VideoBasedView::on_showVideosCheckBox_toggled(bool checked)
