@@ -32,14 +32,14 @@ public:
 
 private:
 
-    void detectFeatures(
+    void detectFeaturesParallel(
             cv::Mat remappedL,
             cv::Mat remappedR,
             std::vector<cv::KeyPoint>& keyPointVectorLeft,
             std::vector<cv::KeyPoint>& keyPointVectorRight,
             int selectedFeatureDetector);
 
-    void describeFeatures(
+    void describeFeaturesParallel(
             cv::Mat remappedL,
             cv::Mat remappedR,
             cv::Mat& descriptorLeft,
@@ -48,35 +48,12 @@ private:
             std::vector<cv::KeyPoint> keyPointVectorRight,
             int selectedFeatureDescription);
 
-    void featureMatching(
-            cv::Mat descriptorLeft,
-            cv::Mat descriptorRight,
-            std::vector<cv::KeyPoint> keyPointVectorLeft,
-            std::vector<cv::KeyPoint> keyPointVectorRight,
-            int selectedFeatureDescriptor,
-            int selectedFeatureMatching,
-            std::vector<cv::DMatch>& matchesLeftRight,
-            std::vector<cv::KeyPoint>& matchedKeyPointsLeft_tMinus1,
-            std::vector<cv::KeyPoint>& matchedKeyPointsLeft_t,
-            std::vector<cv::KeyPoint>& matchedKeyPointsRight_tMinus1,
-            std::vector<cv::KeyPoint>& matchedKeyPointsRight_t);
-
     void calc3DPointsOfInliers( std::vector<cv::KeyPoint> previousMatches,
                                 std::vector<cv::KeyPoint> currentMatches,
                                 cv::Mat camMat,
                                 std::vector<cv::Point2f>& prevMatchesIn,
                                 std::vector<cv::Point2f>& currMatchesIn,
                                 std::vector<cv::Point3f>& points3DInliers);
-
-    void drawInliers(cv::Mat prevImage,
-                     cv::Mat currImage,
-                     std::vector<cv::Point2f> prevMatchesIn,
-                     std::vector<cv::Point2f> currMatchesIn,
-                     std::vector<cv::Point3f> points3DIn,
-                     cv::Mat r,
-                     cv::Mat t,
-                     cv::Mat camMat,
-                     cv::Mat distCoef);
 
     void calcWorldCoords(cv::Mat r, cv::Mat& t);
 
@@ -124,12 +101,19 @@ private:
 
     //mean time calculation
     int iterations = 0;
+    int ransacCounterLeft = 0;
+    int ransacCounterRight = 0;
     int numberOfMatchesAcc = 0;
+    int numberOfTemporalMatchesAcc = 0;
     int numberOfKeyPointsAcc = 0;
-    double detectionTimeAcc = 0;
-    double descriptionTimeAcc = 0;
-    double matchingTimeAcc = 0;
-    double completeTimeAcc = 0;
+    float detectionTimeAcc = 0;
+    float descriptionTimeAcc = 0;
+    float matchingTimeAcc = 0;
+    float temporalMatchingTimeAcc = 0;
+    float completeTimeAcc = 0;
+
+    double numberOfInliersAcc = 0;
+    double numberOfOutliersAcc = 0;
 
 };
 

@@ -95,16 +95,8 @@ public:
     */
     void ControllerCoords();
 
-    /* CURRENTLY NOT BEING CALLED BY ANY FUNCTION
-     * If called every frame before ControllerCoords, should result in smoother
-         contoller reconnection after leaving room bounds
-    */
-    void setHands();
-
     void TrackerCoords();
 
-    char* getEnglishTrackingResultForPose(TrackedDevicePose_t pose);
-    char* getEnglishPoseValidity(TrackedDevicePose_t pose);
     char* getPoseXYZString(TrackedDevicePose_t pose, int hand);
 
     struct _ControllerData

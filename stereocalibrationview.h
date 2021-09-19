@@ -44,7 +44,7 @@ private:
 
     Ui::StereoCalibrationView *ui;
 
-    bool displayImagesBool;
+    bool displayImagesBool = false;
 };
 
 #endif // STEREOCALIBRATIONVIEW_H

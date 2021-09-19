@@ -112,6 +112,15 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     //1=Brute Force, 2=FLANN (Fast Library for Approximate Nearest Neighbors)
     int selectedFeatureMatching = this->selectedFeatureMatching;
 
+    //set variables for coordinates to zero
+    cv::Mat rVec_Left, tVec_Left, rVec_Right, tVec_Right;
+    rVec_Left = cv::Mat(1, 3, CV_64F, double(0));
+    tVec_Left = cv::Mat(1, 3, CV_64F, double(0));
+    rVec_Right = cv::Mat(1, 3, CV_64F, double(0));
+    tVec_Right = cv::Mat(1, 3, CV_64F, double(0));
+    leftCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
+    rightCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
+
     //read camera matrix and dist coef to find essential matrix later
     cv::Mat camMatLeft = imageSet.getCamL();
     cv::Mat camMatRight = imageSet.getCamR();
@@ -134,217 +143,68 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     std::vector<cv::KeyPoint> keyPointVectorLeft, keyPointVectorRight;
     cv::Mat descriptorLeft, descriptorRight;
 
-    detectFeatures(remappedL, remappedR, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
-    describeFeatures(remappedL, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
+    detectFeaturesParallel(remappedL, remappedR, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDetector);
+    describeFeaturesParallel(remappedL, remappedR, descriptorLeft, descriptorRight, keyPointVectorLeft, keyPointVectorRight, selectedFeatureDescriptor);
 
     //--------------------------------------------------------------------------------------
     //3. Feature matching for left and right image. If possible also for consecutive images.
     //--------------------------------------------------------------------------------------
-    std::vector<cv::KeyPoint> currentMatchesLeft, previousMatchesLeft;
-    std::vector<cv::KeyPoint> currentMatchesRight, previousMatchesRight;
     std::vector<cv::DMatch> matchesLeftRight;
-    cv::Mat rVec_Left, tVec_Left, rVec_Right, tVec_Right;
 
-    //matches are searched between left and right as well as previous to current
-    //this way we can find matches between all 4 images.
-    featureMatching(descriptorLeft, descriptorRight,
-                    keyPointVectorLeft, keyPointVectorRight,
-                    selectedFeatureDescriptor, selectedFeatureMatching,
-                    matchesLeftRight,
-                    currentMatchesLeft, previousMatchesLeft,
-                    currentMatchesRight, previousMatchesRight);
+    //------------------------------------
+    //Step One: Match Left and Right Image
+    //------------------------------------
+    QElapsedTimer matchingTimer;
+    matchingTimer.start();
 
-    try{
-        if(iterations == 1){
-            //re/set variables to zero
-            rVec_Left = cv::Mat(1, 3, CV_64F, double(0));
-            tVec_Left = cv::Mat(1, 3, CV_64F, double(0));
-            rVec_Right = cv::Mat(1, 3, CV_64F, double(0));
-            tVec_Right = cv::Mat(1, 3, CV_64F, double(0));
-            leftCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
-            rightCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
-            throw std::invalid_argument("First image.");
-        }else if(iterations > 1 && (currImageLeft.empty() && currImageRight.empty())){
-            throw std::invalid_argument("Empty Image.");
-        }else if(iterations > 1 && (currentMatchesLeft.size() <= 5 || previousMatchesLeft.size() <= 5 || currentMatchesRight.size() <= 5 || previousMatchesRight.size() <= 5)){
-            throw std::invalid_argument("Not enough matches to calculate camera pose.");
-        }
+    matchesLeftRight = featureMatchingMethod(descriptorLeft, descriptorRight, selectedFeatureDescriptor, selectedFeatureMatching);
+    std::cout << matchesLeftRight.size() << " matches between left and right" << std::endl;
 
-//        //display matches and draw line
-//        cv::Mat imageWithMatchesLeftRight;
-//        std::vector<char> mask(matchesLeftRight.size(), 1);
-//        cv::drawMatches(remappedL, keyPointVectorLeft, remappedR, keyPointVectorRight, matchesLeftRight,imageWithMatchesLeftRight,cv::Scalar::all(-1), cv::Scalar::all(-1), mask, cv::DrawMatchesFlags::DEFAULT);
-//        cv::imshow("Matches Left and Right", imageWithMatchesLeftRight);
-//        cv::waitKey(5000);
-//        cv::destroyAllWindows();
+    double matchingTime = matchingTimer.elapsed();
+    matchingTimeAcc = matchingTimeAcc + matchingTime;
+    numberOfMatchesAcc = numberOfMatchesAcc + matchesLeftRight.size();
 
-        //-------------------------------------------------------------------------------------------
-        //4. find essential matrix, recover pose and get triangulated points as cartesian coordinates
-        //-------------------------------------------------------------------------------------------
-        std::vector<cv::Point3f> points3DIn_Left;
-        std::vector<cv::Point2f> prevMatchesIn_Left, currMatchesIn_Left;
-        calc3DPointsOfInliers(previousMatchesLeft, currentMatchesLeft, camMatLeft, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left);
-
-        std::vector<cv::Point3f> points3DIn_Right;
-        std::vector<cv::Point2f> prevMatchesIn_Right, currMatchesIn_Right;
-        calc3DPointsOfInliers(previousMatchesRight, currentMatchesRight, camMatRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right);        
-
-        //-------------------------------------
-        //5. Calculate rotation and translation
-        //-------------------------------------
-
-//        if(prevMatchesIn_Left.size() <= 5 || currMatchesIn_Left.size() <= 5 || prevMatchesIn_Right.size() <= 5 || currMatchesIn_Right.size() <= 5){
-//            throw std::invalid_argument("Not enough matches after inliers filter.");
-//        }
-
-        //solvePnPRansac for left to get rotation vector and translation vector
-        cv::Mat emptyDistCoeff;
-        cv::solvePnPRansac(points3DIn_Left, currMatchesIn_Left, camMatLeft, emptyDistCoeff, rVec_Left, tVec_Left);
-
-        //solvePnPRansac for right to get rotation vector and translation vector
-        cv::solvePnPRansac(points3DIn_Right, currMatchesIn_Right, camMatRight, emptyDistCoeff, rVec_Right, tVec_Right);
-
-//        cv::Mat distCoefLeft = imageSet.getDistCoefL();
-//        cv::Mat distCoefRight = imageSet.getDistCoefR();
-//        drawInliers(prevImageLeft, remappedL, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left, rVec_Left, tVec_Left, camMatLeft, distCoefLeft);
-//        drawInliers(prevImageRight, remappedR, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right, rVec_Right, tVec_Right, camMatRight, distCoefRight);
-
-        //----------------------------------------------------------------------------------------
-        //6. Determining the motion of the camera in world coordinates (cam_world = -inverse(R)*t)
-        //----------------------------------------------------------------------------------------
-
-        //calculate world coordinates for left camera
-        calcWorldCoords(rVec_Left, tVec_Left);
-        leftCameraWorldTranslation = tVec_Left;
-
-        //calculate world coordinates for right camera
-        calcWorldCoords(rVec_Right, tVec_Right);
-        rightCameraWorldTranslation = tVec_Right;
-
-        //---------------------------
-        //7. Save coordinates in File
-        //---------------------------
-        //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
-        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
-
-    }catch(const std::exception& e){
-        std::cout << e.what() << std::endl;
-        //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
-        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
-    }
-
-    double completeTime = totalImageMatchingTimer.elapsed();
-    completeTimeAcc = completeTimeAcc + completeTime;
-
-    //Set the current values as previous
-    prevImageLeft = remappedL;
-    prevImageRight = remappedR;
-    prevMatchesLeftRight = matchesLeftRight;
-
-    //Outputs
-    std::cout << "Overall mean time complete: " << completeTimeAcc/iterations << "ms." << std::endl;
-    std::cout << "Overall mean time for total feature detection: " << detectionTimeAcc/iterations << "ms." << std::endl;
-    std::cout << "Overall mean time for total feature description: " << descriptionTimeAcc/iterations << "ms." << std::endl;
-    std::cout << "Overall mean time for total image matching: " << matchingTimeAcc/iterations << "ms." << std::endl;
-    std::cout << "Overall average number of matches: " << numberOfMatchesAcc/iterations << "." << std::endl;
-    std::cout << "Overall average number of found key points: " << numberOfKeyPointsAcc/iterations << "." << std::endl;
-}
-
-void ImageProcessor::detectFeatures(cv::Mat remappedL, cv::Mat remappedR, std::vector<cv::KeyPoint> &keyPointVectorLeft, std::vector<cv::KeyPoint> &keyPointVectorRight, int selectedFeatureDetector){
-    //error handling in general
-
-    QElapsedTimer detectorTimer;
-    detectorTimer.start();
-
-    std::thread t1detect([&] {keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);});
-    std::thread t2detect([&] {keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);});
-    t1detect.join();
-    t2detect.join();
-
-    double detectionTime = detectorTimer.elapsed();
-    detectionTimeAcc = detectionTimeAcc + detectionTime;
-    numberOfKeyPointsAcc = numberOfKeyPointsAcc + ((keyPointVectorLeft.size() + keyPointVectorRight.size())/2);
-
-    std::cout << "LeftKeyPointVector: " << keyPointVectorLeft.size() << std::endl;
-    std::cout << "RightKeyPointVector: " << keyPointVectorRight.size() << std::endl;
-}
-
-void ImageProcessor::describeFeatures(cv::Mat remappedL, cv::Mat remappedR, cv::Mat &descriptorLeft, cv::Mat &descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescription)
-{
-    //error handling in general
-
-    QElapsedTimer descriptorTimer;
-    descriptorTimer.start();
-
-    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescription);});
-    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescription);});
-    t1descript.join();
-    t2descript.join();
-
-    double descriptionTime = descriptorTimer.elapsed();
-    descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
-}
-
-void ImageProcessor::featureMatching(cv::Mat descriptorLeft,
-                                     cv::Mat descriptorRight,
-                                     std::vector<cv::KeyPoint> keyPointVectorLeft,
-                                     std::vector<cv::KeyPoint> keyPointVectorRight,
-                                     int selectedFeatureDescriptor,
-                                     int selectedFeatureMatching,
-                                     std::vector<cv::DMatch> &matchesLeftRight,
-                                     std::vector<cv::KeyPoint> &matchedKeyPointsLeft_tMinus1,
-                                     std::vector<cv::KeyPoint> &matchedKeyPointsLeft_t,
-                                     std::vector<cv::KeyPoint> &matchedKeyPointsRight_tMinus1,
-                                     std::vector<cv::KeyPoint> &matchedKeyPointsRight_t)
-{
-
+    //-----------------------------------------------------------------------------------------------------
+    //Step Two: Select key points and descriptors from matches of left and right images
+    //key points are used for triangulation and descriptors are used for temporal matching (t matching t-1)
+    //-----------------------------------------------------------------------------------------------------
     std::vector<cv::KeyPoint> matchedKeyPointsLeft, matchedKeyPointsRight;
     cv::Mat matchedDescriptorsLeft, matchedDescriptorsRight;
 
+    for(std::vector<cv::DMatch>::size_type i = 0; i < matchesLeftRight.size(); i++){
+        //keypoints
+        matchedKeyPointsLeft.push_back(keyPointVectorLeft[matchesLeftRight[i].queryIdx]);
+        matchedKeyPointsRight.push_back(keyPointVectorRight[matchesLeftRight[i].trainIdx]);
+        //descriptors
+        matchedDescriptorsLeft.push_back(descriptorLeft.row(matchesLeftRight[i].queryIdx));
+        matchedDescriptorsRight.push_back(descriptorRight.row(matchesLeftRight[i].trainIdx));
+    }
+
     try{
-        //------------------------------------
-        //Step One: Match Left and Right Image
-        //------------------------------------
-        if(descriptorLeft.rows <= 5  && descriptorRight.rows <= 5){
-            throw std::invalid_argument("Not enough features could be detected in atleast one image.");
-        }
-
-        QElapsedTimer matchingTimer;
-        matchingTimer.start();
-
-        matchesLeftRight = featureMatchingMethod(descriptorLeft, descriptorRight, selectedFeatureDescriptor, selectedFeatureMatching);
-        std::cout << matchesLeftRight.size() << " matches in images in t" << std::endl;
-
-        //-----------------------------------------------------------------------------------------------------
-        //Step Two: Select key points and descriptors from matches of left and right images
-        //key points are used for triangulation and descriptors are used for temporal matching (t matching t-1)
-        //-----------------------------------------------------------------------------------------------------
-        for(std::vector<cv::DMatch>::size_type i = 0; i < matchesLeftRight.size(); i++){
-            matchedKeyPointsLeft.push_back(keyPointVectorLeft[matchesLeftRight[i].queryIdx]);
-            matchedKeyPointsRight.push_back(keyPointVectorRight[matchesLeftRight[i].trainIdx]);
-            matchedDescriptorsLeft.push_back(descriptorLeft.row(matchesLeftRight[i].queryIdx));
-            matchedDescriptorsRight.push_back(descriptorRight.row(matchesLeftRight[i].trainIdx));
-        }
-
-        double matchingTime = matchingTimer.elapsed();
-        matchingTimeAcc = matchingTimeAcc + matchingTime;
-        numberOfMatchesAcc = numberOfMatchesAcc + matchesLeftRight.size();
+        //For the following step there have to be previous images
+        if(iterations == 1)
+            throw std::invalid_argument("First image.");
 
         //---------------------------------------------------------------------------------------------
         //Step Three: Temporal matching. Match Left image at t-1 and t. Match Right image at t-1 and t.
         //than select key points of all images.
         //---------------------------------------------------------------------------------------------
+        std::vector<cv::KeyPoint> matchedKeyPointsLeft_tMinus1, matchedKeyPointsLeft_t, matchedKeyPointsRight_tMinus1, matchedKeyPointsRight_t;
 
-        if(prevImageLeft.empty() && prevImageRight.empty()){
-            throw std::invalid_argument("First Image.");
-        }
-        else if(prevDescriptorLeft.rows <= 5 || prevDescriptorRight.rows <= 5 || matchedDescriptorsLeft.rows <= 5 || matchedDescriptorsRight.rows <= 5){
+        if(prevDescriptorLeft.rows <= 5 || prevDescriptorRight.rows <= 5 || matchedDescriptorsLeft.rows <= 5 || matchedDescriptorsRight.rows <= 5){
             throw std::invalid_argument("Not enough matches after matching of current left and current right image");
         }
+
+        QElapsedTimer temporalMatchingTimer;
+        temporalMatchingTimer.start();
 
         std::vector<cv::DMatch> matchesLeftConsecutive, matchesRightConsecutive;
         matchesLeftConsecutive = featureMatchingMethod(prevDescriptorLeft, matchedDescriptorsLeft, selectedFeatureDescriptor, selectedFeatureMatching);
         matchesRightConsecutive = featureMatchingMethod(prevDescriptorRight, matchedDescriptorsRight, selectedFeatureDescriptor, selectedFeatureMatching);
+
+        float temporalMatchingTime = temporalMatchingTimer.elapsed();
+        temporalMatchingTimeAcc = temporalMatchingTimeAcc + temporalMatchingTime;
+        numberOfTemporalMatchesAcc = numberOfTemporalMatchesAcc + ((matchesLeftConsecutive.size() + matchesRightConsecutive.size())/2);
 
         std::cout << matchesLeftConsecutive.size() << " matches in left image in t & t-1" << std::endl;
         std::cout << matchesRightConsecutive.size() << " matches in right image in t & t-1" << std::endl;
@@ -365,17 +225,148 @@ void ImageProcessor::featureMatching(cv::Mat descriptorLeft,
             matchedKeyPointsRight_t.push_back(matchedKeyPointsRight[matchesRightConsecutive[i].trainIdx]);
         }
 
-        prevKeypointsLeft = matchedKeyPointsLeft;
-        prevKeypointsRight = matchedKeyPointsRight;
-        prevDescriptorLeft = matchedDescriptorsRight;
-        prevDescriptorRight = matchedDescriptorsRight;
+        //-----------------------------------------------------------------------------------------------------------
+        //4. find essential matrix, recover pose and get triangulated points as cartesian coordinates for left images
+        //-----------------------------------------------------------------------------------------------------------
+        int inliers = 0;
+        int outliers = 0;
+        std::vector<cv::Point3f> points3DIn_Left;
+        std::vector<cv::Point2f> prevMatchesIn_Left, currMatchesIn_Left;
+        calc3DPointsOfInliers(matchedKeyPointsLeft_tMinus1, matchedKeyPointsLeft_t, camMatLeft, prevMatchesIn_Left, currMatchesIn_Left, points3DIn_Left);
+
+        inliers = inliers + points3DIn_Left.size();
+        outliers = outliers + (matchedKeyPointsLeft_t.size() - points3DIn_Left.size());
+
+        //------------------------------------------
+        //5. Calculate rotation and translation left
+        //------------------------------------------
+        if(prevMatchesIn_Left.size() > 5 || currMatchesIn_Left.size() > 5){
+            cv::Mat empyDistCoeffL, inliersLeft;
+            //solvePnPRansac for left to get rotation vector and translation vector
+            cv::solvePnPRansac(points3DIn_Left, currMatchesIn_Left, camMatLeft, empyDistCoeffL, rVec_Left, tVec_Left, false, 100, 8.0, 0.99, inliersLeft);
+
+            //---------------------------------------------------------------------------------------------
+            //6. Determining the motion of the camera left in world coordinates (cam_world = -inverse(R)*t)
+            //---------------------------------------------------------------------------------------------
+            //calculate world coordinates for left camera
+            calcWorldCoords(rVec_Left, tVec_Left);
+            leftCameraWorldTranslation = tVec_Left;
+
+            ransacCounterLeft++;
+            std::cout << "ransacsLeft: " << ransacCounterLeft << std::endl;
+        }
+        else{
+            leftCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
+            std::cout << leftCameraWorldTranslation << std::endl;
+        }
+
+        //------------------------------------------------------------------------------------------------------------
+        //4. find essential matrix, recover pose and get triangulated points as cartesian coordinates for right images
+        //------------------------------------------------------------------------------------------------------------
+        std::vector<cv::Point3f> points3DIn_Right;
+        std::vector<cv::Point2f> prevMatchesIn_Right, currMatchesIn_Right;
+        calc3DPointsOfInliers(matchedKeyPointsRight_tMinus1, matchedKeyPointsRight_t, camMatRight, prevMatchesIn_Right, currMatchesIn_Right, points3DIn_Right);
+
+        inliers = inliers + points3DIn_Right.size();
+        outliers = outliers + (matchedKeyPointsRight_t.size() - points3DIn_Right.size());
+
+        //-------------------------------------------
+        //5. Calculate rotation and translation right
+        //-------------------------------------------
+        if(prevMatchesIn_Right.size() > 5 || currMatchesIn_Right.size() > 5){
+            cv::Mat emptyDistCoeffR, inliersRight;
+            //solvePnPRansac for right to get rotation vector and translation vector
+            cv::solvePnPRansac(points3DIn_Right, currMatchesIn_Right, camMatRight, emptyDistCoeffR, rVec_Right, tVec_Right, false, 100, 8.0, 0.99, inliersRight);
+
+            //----------------------------------------------------------------------------------------------
+            //6. Determining the motion of the camera right in world coordinates (cam_world = -inverse(R)*t)
+            //----------------------------------------------------------------------------------------------
+            //calculate world coordinates for right camera
+            calcWorldCoords(rVec_Right, tVec_Right);
+            rightCameraWorldTranslation = tVec_Right;
+
+            ransacCounterRight++;
+            std::cout << "ransacsRight: " << ransacCounterRight << std::endl;
+        }
+        else{
+            rightCameraWorldTranslation = cv::Mat(1, 3, CV_64F, double(0));
+            std::cout << rightCameraWorldTranslation << std::endl;
+        }
+
+        numberOfInliersAcc = numberOfInliersAcc + (inliers / 2);
+        numberOfOutliersAcc = numberOfOutliersAcc + (outliers / 2);
+
+        //---------------------------
+        //7. Save coordinates in File
+        //---------------------------
+        //addLineToFile(leftCameraWorldCoords, rightCameraWorldCoords);
+        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
 
     }catch(const std::exception& e){
+        std::cout << e.what() << std::endl;
         prevKeypointsLeft = matchedKeyPointsLeft;
         prevKeypointsRight = matchedKeyPointsRight;
         prevDescriptorLeft = matchedDescriptorsRight;
         prevDescriptorRight = matchedDescriptorsRight;
+        addLineToFile(leftCameraWorldTranslation, rightCameraWorldTranslation);
     }
+
+    double completeTime = totalImageMatchingTimer.elapsed();
+    completeTimeAcc = completeTimeAcc + completeTime;
+
+    //Set the current values as previous
+    prevImageLeft = remappedL;
+    prevImageRight = remappedR;
+    prevMatchesLeftRight = matchesLeftRight;
+
+    //Outputs
+    std::cout << "Overall mean time complete: " << completeTimeAcc/iterations << "ms." << std::endl;
+    std::cout << "Overall mean time for total feature detection: " << detectionTimeAcc/iterations << "ms." << std::endl;
+    std::cout << "Overall mean time for total feature description: " << descriptionTimeAcc/iterations << "ms." << std::endl;
+    std::cout << "Overall mean time for image matching left and right: " << matchingTimeAcc/iterations << "ms." << std::endl;
+    std::cout << "Overall mean time for temporal matching: " << temporalMatchingTimeAcc/iterations << "ms." << std::endl;
+    std::cout << "Overall average number of matches: " << numberOfMatchesAcc/iterations << "." << std::endl;
+    std::cout << "Overall average number of found key points: " << numberOfKeyPointsAcc/iterations << "." << std::endl;
+    std::cout << "Overall average number of temporal matches: " << numberOfTemporalMatchesAcc/iterations << "." << std::endl;
+    std::cout << "Overall average number of outliers: " << numberOfOutliersAcc/iterations << "." << std::endl;
+    std::cout << "Overall average number of inliers: " << numberOfInliersAcc/iterations << "." << std::endl;
+    std::cout << "Number of calculated wordl coordinates (left): " << ransacCounterLeft << "." << std::endl;
+    std::cout << "Number of calculated wordl coordinates (right): " << ransacCounterRight << "." << std::endl;
+}
+
+void ImageProcessor::detectFeaturesParallel(cv::Mat remappedL, cv::Mat remappedR, std::vector<cv::KeyPoint> &keyPointVectorLeft, std::vector<cv::KeyPoint> &keyPointVectorRight, int selectedFeatureDetector){
+    //error handling in general
+
+    QElapsedTimer detectorTimer;
+    detectorTimer.start();
+
+    std::thread t1detect([&] {keyPointVectorLeft = featureDetectionMethod(remappedL, selectedFeatureDetector);});
+    std::thread t2detect([&] {keyPointVectorRight = featureDetectionMethod(remappedR, selectedFeatureDetector);});
+    t1detect.join();
+    t2detect.join();
+
+    double detectionTime = detectorTimer.elapsed();
+    detectionTimeAcc = detectionTimeAcc + detectionTime;
+    numberOfKeyPointsAcc = numberOfKeyPointsAcc + ((keyPointVectorLeft.size() + keyPointVectorRight.size())/2);
+
+    std::cout << "LeftKeyPointVector: " << keyPointVectorLeft.size() << std::endl;
+    std::cout << "RightKeyPointVector: " << keyPointVectorRight.size() << std::endl;
+}
+
+void ImageProcessor::describeFeaturesParallel(cv::Mat remappedL, cv::Mat remappedR, cv::Mat &descriptorLeft, cv::Mat &descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescription)
+{
+    //error handling in general
+
+    QElapsedTimer descriptorTimer;
+    descriptorTimer.start();
+
+    std::thread t1descript([&] {descriptorLeft = featureDescriptionMethod(remappedL, keyPointVectorLeft, selectedFeatureDescription);});
+    std::thread t2descript([&] {descriptorRight = featureDescriptionMethod(remappedR, keyPointVectorRight, selectedFeatureDescription);});
+    t1descript.join();
+    t2descript.join();
+
+    double descriptionTime = descriptorTimer.elapsed();
+    descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 }
 
 void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMatches,
@@ -397,12 +388,12 @@ void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMat
     }
 
     cv::Mat E, mask;
-    E = cv::findEssentialMat(prevMatchesGood, currMatchesGood, camMat, cv::RANSAC, 0.999, 1.0, mask);
+    E = cv::findEssentialMat(prevMatchesGood, currMatchesGood, camMat, cv::RANSAC, 0.95, 1.0, mask);
     std::cout << "inliers E: " << sum(mask) << std::endl;
 
     //recover pose
     cv::Mat R, t, points3D_homogeneous;
-    int inliers = cv::recoverPose(E, prevMatchesGood, currMatchesGood, camMat, R, t, 50, mask, points3D_homogeneous);
+    int inliers = cv::recoverPose(E, prevMatchesGood, currMatchesGood, camMat, R, t, 100, mask, points3D_homogeneous);
     std::cout << "inliers after recoverPose: " << inliers << std::endl;
 
     //convert points to cartesian
@@ -427,38 +418,6 @@ void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMat
 
 }
 
-void ImageProcessor::drawInliers(cv::Mat prevImage,
-                                 cv::Mat currImage,
-                                 std::vector<cv::Point2f> prevMatchesIn,
-                                 std::vector<cv::Point2f> currMatchesIn,
-                                 std::vector<cv::Point3f> points3DIn,
-                                 cv::Mat r,
-                                 cv::Mat t,
-                                 cv::Mat camMat,
-                                 cv::Mat distCoef)
-{
-
-    //circle matches in images
-    cv::Mat prevImageClone = prevImage.clone();
-    cv::Mat currImageClone = currImage.clone();
-    for(int i = 0; i < (int)prevMatchesIn.size(); i++){
-        cv::circle(prevImageClone, prevMatchesIn[i], 3, cv::Scalar(0, 255, 0), -1);
-        cv::circle(currImageClone, currMatchesIn[i], 3, cv::Scalar(0, 0, 255), -1);
-    }
-
-    //check by projecting points to image plane
-    std::vector<cv::Point2f> projectedPoints;
-    cv::projectPoints(points3DIn, r, t, camMat, distCoef, projectedPoints);
-
-    for(int i = 0; i < (int)projectedPoints.size(); i++){
-        cv::circle(currImageClone, cv::Point(projectedPoints[i]), 3, cv::Scalar(255, 0, 0), -1);
-    }
-
-    cv::imshow("prev", prevImageClone);
-    cv::imshow("curr (blue being reprojected points)", currImageClone);
-    cv::waitKey(10000);
-    cv::destroyAllWindows();
-}
 
 void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec)
 {
@@ -466,17 +425,6 @@ void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec)
     cv::Rodrigues(rvec, R);
     R = R.t();
     tvec = -R * tvec;
-
-//    in case rotation is needed
-//    cv::Rodrigues(R, rvec);
-
-//    double roll = atan2(-R.at<double>(2,1), R.at<double>(2,2));
-//    double pitch = asin(R.at<double>(2,0));
-//    double yaw = atan2(-R.at<double>(1,0), R.at<double>(0,0));
-
-//    cv::Mat T = cv::Mat::eye(4, 4, R.type());
-//    T(cv::Range(0,3), cv::Range(0,3) ) = R;
-//    T(cv::Range(0,3), cv::Range(3,4) ) = tvec;
 }
 
 std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection)
@@ -488,7 +436,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
     switch (selectedFeatureDetection) {
     case 1:{
         //ORB - Oriented FAST and Rotated BRIEF
-        cv::Ptr<cv::ORB> orb = cv::ORB::create(2000);
+        cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
         orb->detect(remapped, keyPointVector, cv::Mat());
 
         selectedDetector = "ORB";
@@ -514,7 +462,7 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
         break;
     }
     case 4:{
-        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create(2000);
+        cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create(1000);
         sift->detect(remapped, keyPointVector, cv::Mat());
 
         selectedDetector = "SIFT";
@@ -600,12 +548,9 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
     std::vector<std::vector<cv::DMatch>> matches;
     std::vector<cv::DMatch> goodMatches;
 
-    //matching ratio for D.Lowe
-    const float ratio = 0.9;
-
     //check if number of features in both vectors is equal or greater than number of nearest neighbors in knn match.
     //else knn match will throw an error
-    if((descriptorOne.rows < 6) || (descriptorTwo.rows < 6)){
+    if((descriptorOne.rows < 6) || (descriptorTwo.rows < 6 || descriptorOne.empty() || descriptorTwo.empty())){
         std::cout << "Less than two features found in at least one descriptor." << std::endl;
     }
 
@@ -622,27 +567,52 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
         //and is a good alternative to ratio test proposed by D.Lowe in SIFT paper.
         //false by default.
         //https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
-        //int crossCheck = false;
+        int crossCheck = true;
 
         if(selectedFeatureDescription < 4){
             //https://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html
             //best values for orb, brief or brisk descriptors
-            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
-            matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
+            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING, crossCheck);
 
-            for(int i = 0; i < (int)matches.size(); i++)
-                if(!(matches[i].empty()))
-                    goodMatches.push_back(matches[i][0]);
+            if(crossCheck){
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
+
+                for(int i = 0; i < (int)matches.size(); i++)
+                    if(!(matches[i].empty()))
+                        goodMatches.push_back(matches[i][0]);
+            }
+            else{
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+                for(size_t i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()))
+                        goodMatches.push_back(matches[i][0]);
+            }
+
         }
         else{
             //use default values and knnMatch for sift or surf
-            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2, true);
-            matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
+            cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2, crossCheck);
 
-            //apply ratio test by D.Lowe
-            for(size_t i = 0; i < matches.size(); i++)
-                if(!(matches[i].empty()))
-                    goodMatches.push_back(matches[i][0]);
+            if(crossCheck){
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 1);
+
+                std::sort(matches.begin(), matches.end());
+
+                for(size_t i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()))
+                        goodMatches.push_back(matches[i][0]);
+            }
+            else{
+                matcher->knnMatch(descriptorOne, descriptorTwo, matches, 2);
+
+                std::sort(matches.begin(), matches.end());
+
+                for(size_t i = 0; i < matches.size(); i++)
+                    if(!(matches[i].empty()))
+                        goodMatches.push_back(matches[i][0]);
+            }
+
         }
 
     }
@@ -657,7 +627,7 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
 
             //apply ratio test by D.Lowe
             for(size_t i = 0; i < matches.size(); i++)
-                if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                if(!(matches[i].empty()) && (matches[i][0].distance < 0.75 * matches[i][1].distance))
                     goodMatches.push_back(matches[i][0]);
         }
         else{
@@ -667,7 +637,7 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
 
             //apply ratio test by D.Lowe
             for(size_t i = 0; i < matches.size(); i++)
-                if(!(matches[i].empty()) && (matches[i][0].distance < ratio * matches[i][1].distance))
+                if(!(matches[i].empty()) && (matches[i][0].distance < 0.75 * matches[i][1].distance))
                     goodMatches.push_back(matches[i][0]);
         }
     }
@@ -690,6 +660,6 @@ void ImageProcessor::closeTrackingFile()
 
 void ImageProcessor::addLineToFile(cv::Mat tVecLeft, cv::Mat tVecRight)
 {
-    this->trackingFile << "TL: " << std::setprecision(3) << tVecLeft.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,1) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,2) * 0.001 <<
-                          ", TR: " << std::setprecision(3) << tVecRight.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,1) * 0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,2) * 0.001 << std::endl;
+    this->trackingFile << "TL, " << std::setprecision(3) << tVecLeft.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,1) * -0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,2) * 0.001 <<
+                          ", TR, " << std::setprecision(3) << tVecRight.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,1) * -0.001 << ", " << std::setprecision(3) << tVecRight.at<double>(0,2) * 0.001 << std::endl;
 }

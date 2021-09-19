@@ -58,7 +58,6 @@ void StereoCalibrationController::performSteroCalibration(){
     cv::Mat CamL, DistCoefL, R_L, T_L;
     cv::Mat CamR, DistCoefR, R_R, T_R;
     cv::Mat R, T, E, F;
-    cv::Mat new_CamL, new_CamR;
 
     //Once we know the transformation between the two cameras we can perform stereo rectification
     cv::Mat rect_l, rect_r, proj_mat_l, proj_mat_r, Q;
@@ -83,12 +82,10 @@ void StereoCalibrationController::performSteroCalibration(){
 
     //Calibrate left camera
     double leftReprojectionError = cv::calibrateCamera(object_points, imagePointsL, grayL.size(), CamL, DistCoefL, R_L, T_L);
-    new_CamL = cv::getOptimalNewCameraMatrix(CamL, DistCoefL, grayL.size(), 1, grayL.size(), 0);
     std::cout << "Reprojection Error left camera: " << leftReprojectionError << endl;
 
     //Calibrate Right camera
     double rightReprojectionError = cv::calibrateCamera(object_points, imagePointsR, grayR.size(), CamR, DistCoefR, R_R, T_R);
-    new_CamR = cv::getOptimalNewCameraMatrix(CamR, DistCoefR, grayR.size(), 1, grayR.size(), 0);
     std::cout << "Reprojection Error right camera: " << rightReprojectionError << endl;
 
     //Stereo calibrate cameras
@@ -99,18 +96,18 @@ void StereoCalibrationController::performSteroCalibration(){
     double stereoReprojectionError = cv::stereoCalibrate(object_points,
                         imagePointsL,
                         imagePointsR,
-                        new_CamL,
+                        CamL,
                         DistCoefL,
-                        new_CamR,
+                        CamR,
                         DistCoefR,
                         grayR.size(),
                         R, T, E, F,
                         flag, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6));
 
-    cv::stereoRectify(new_CamL, DistCoefL, new_CamR, DistCoefR, grayR.size(), R, T, rect_l, rect_r, proj_mat_l, proj_mat_r, Q, 1);
+    cv::stereoRectify(CamL, DistCoefL, CamR, DistCoefR, grayR.size(), R, T, rect_l, rect_r, proj_mat_l, proj_mat_r, Q, 1);
 
-    cv::initUndistortRectifyMap(new_CamL, DistCoefL, rect_l, proj_mat_l, grayL.size(), CV_16SC2, Left_Stereo_Map1, Left_Stereo_Map2);
-    cv::initUndistortRectifyMap(new_CamR, DistCoefR, rect_r, proj_mat_r, grayR.size(), CV_16SC2, Right_Stereo_Map1, Right_Stereo_Map2);
+    cv::initUndistortRectifyMap(CamL, DistCoefL, rect_l, proj_mat_l, grayL.size(), CV_16SC2, Left_Stereo_Map1, Left_Stereo_Map2);
+    cv::initUndistortRectifyMap(CamR, DistCoefR, rect_r, proj_mat_r, grayR.size(), CV_16SC2, Right_Stereo_Map1, Right_Stereo_Map2);
 
     cv::remap(imgL, remappedL, Left_Stereo_Map1, Left_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imgR, remappedR, Right_Stereo_Map1, Right_Stereo_Map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
@@ -130,8 +127,6 @@ void StereoCalibrationController::performSteroCalibration(){
     imageSet.setE(E);
     imageSet.setF(F);
     imageSet.setQ(Q);
-    imageSet.setNewCamL(new_CamL);
-    imageSet.setNewCamR(new_CamR);
     imageSet.setRectL(rect_l);
     imageSet.setRectR(rect_r);
     imageSet.setProjMatL(proj_mat_l);

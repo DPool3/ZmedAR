@@ -313,50 +313,11 @@ void ViveTracking::TrackerCoords()
         rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
         pT->isValid =trackedDevicePose.bPoseIsValid;
 
+        //X,Y,Z
         sprintf(coordsBuf,"%sT%d, %s",coordsBuf, i, getPoseXYZString(trackedDevicePose,0));
-
         //qw, qx, qy, qz
         sprintf(rotBuf,"%sRot%d, %.2f, %.2f, %.2f, %.2f, ",rotBuf, i,rot.w,rot.x,rot.y,rot.z);
-
-//        sprintf(trackBuf,"%s T%d: %-25.25s %-7.7s" , trackBuf, i, getEnglishTrackingResultForPose(trackedDevicePose), getEnglishPoseValidity(trackedDevicePose));
-    }
-}
-
-char* ViveTracking::getEnglishTrackingResultForPose(TrackedDevicePose_t pose)
-{
-    char* buf = new char[50];
-    switch (pose.eTrackingResult)
-    {
-        case vr::ETrackingResult::TrackingResult_Uninitialized:
-                sprintf(buf, "Invalid tracking result");
-                break;
-        case vr::ETrackingResult::TrackingResult_Calibrating_InProgress:
-                sprintf(buf, "Calibrating in progress");
-                break;
-        case vr::ETrackingResult::TrackingResult_Calibrating_OutOfRange:
-                sprintf(buf, "Calibrating Out of range");
-                break;
-        case vr::ETrackingResult::TrackingResult_Running_OK:
-                sprintf(buf, "Running OK");
-                break;
-        case vr::ETrackingResult::TrackingResult_Running_OutOfRange:
-                sprintf(buf, "WARNING: Running Out of Range");
-                break;
-        default:
-                sprintf(buf, "Default");
-                break;
-    }
-    return buf;
-}
-
-char* ViveTracking::getEnglishPoseValidity(TrackedDevicePose_t pose)
-{
-    char* buf = new char[50];
-    if(pose.bPoseIsValid)
-        sprintf(buf, "Valid");
-    else
-        sprintf(buf, "Invalid");
-    return buf;
+   }
 }
 
 char* ViveTracking::getPoseXYZString(TrackedDevicePose_t pose, int hand)
