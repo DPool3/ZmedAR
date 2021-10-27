@@ -11,6 +11,13 @@
 #include"directorymanager.h"
 #include"imageset.h"
 
+/**
+ * @brief In der ImageSetController class wird jede Aufnahme durch imagesetview gestartet.
+ * Bei der Aufnahme speichert der imagesetcontroller, die zur gleichen Zeit,
+ * von den Dart-Kameras erhaltenen Bilder mit angepasstem Bildnahmen,
+ * in einem dafür Vorgesehenen Order des image sets.
+ * Deweiteren erstellt dieser auch das image set und trägt alle Einträge in das Objekt ein.
+ */
 class ImageSetController : public QObject
 {
     Q_OBJECT

@@ -11,6 +11,12 @@ namespace Ui {
 class ImageSetView;
 }
 
+/**
+ * @brief Die ImageSetView class leitet Input von der GUI an den Controller weiter
+ * und darzustellende Bilder von dem Controller an die GUI.
+ * Desweiteren wird hier mit jedem Knopfdruck die Aufnahme des Controllers gestartet,
+ * bis die gewünschte Anzahl an Aufnahmen durchgeführt wurde.
+ */
 class ImageSetView : public QDialog
 {
     Q_OBJECT

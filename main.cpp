@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include <QApplication>
 
+/**
+ * @brief main führt den Aufruf des Mainwindows durch.
+ */
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

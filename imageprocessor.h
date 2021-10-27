@@ -16,6 +16,12 @@
 #include "imageset.h"
 #include "directorymanager.h"
 
+/**
+ * @brief Die ImageProcessor class führt fast alle bildverarbeitenden Methoden durch.
+ * Zu diesen gehören unteranderem die stereovisuelle Odometrie, die Generierung
+ * der Anaglyph 3D Bilder, sowie die Vorverarbeitung der Bilder für die
+ * Darstellung in der GUI.
+ */
 class ImageProcessor
 {
 public:

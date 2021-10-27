@@ -10,6 +10,13 @@
 #include "dialogmanager.h"
 #include "imageset.h"
 
+/**
+ * @brief Die StereoCalibrationController class führt den kompletten Prozess
+ * der Stereokamerakalibrierung, entzerrung und des Remappings durch.
+ * Neu errechnete Werte werden in dem verwendeten Image Set gespeichert.
+ * Gleichzeitig gibt die Klasse Bilder der Corner Detection
+ * sowie des Remappings an stereocalibration view zurück.
+ */
 class StereoCalibrationController
 {
 public:

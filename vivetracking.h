@@ -23,14 +23,22 @@ struct _InitFlags
 };
 typedef struct _InitFlags InitFlags;
 
+/**
+ * @brief Die ViveTracking class besteht überwiegend aus dem Code eines Testprogramms.
+ * Es ermöglicht das Tracking von HTC-VIVE Controllern, Headset und Trackern,
+ * unter Verwendung von OpenVR SDK, Steam und SteamVR.
+ * Hier werden nur die Teile des Programms verwendet, die für das Tracking der
+ * HTC-VIVE Tracker notwendig sind. Desweiteren wurde dieser Code um das Schreiben
+ * der Werte, in eine Datei, erweitert.
+ */
 class ViveTracking
 {
 private:
-    //The pointer to the VR system for VR function calls. Initialized in the constructor.
+    //Der Pointer zum VR-System für VR-Funktionsaufrufe. Initialisiert im Konstruktror.
     IVRSystem* vr_pointer = NULL;
 
     //Returns xyz coordinates from the matrix that is returned by the VR system functions
-    //  see the HMDCoords() and ControllerCoords() methods for usage
+    //see the HMDCoords() and ControllerCoords() methods for usage
     HmdVector3_t GetPosition(HmdMatrix34_t matrix);
 
     HmdQuaternion_t GetRotation(vr::HmdMatrix34_t matrix);

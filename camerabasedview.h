@@ -12,6 +12,10 @@ namespace Ui {
 class CameraBasedView;
 }
 
+/**
+ * @brief Die CameraBasedView class leitet den Input in der GUI an den Controller und darzustellende
+ * Bilder des Controllers an die GUI weiter.
+ */
 class CameraBasedView : public QDialog
 {
     Q_OBJECT

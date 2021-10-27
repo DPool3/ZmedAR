@@ -1,39 +1,73 @@
 #include "imagesetcontroller.h"
 
+/**
+ * @brief ImageSetController::ImageSetController
+ */
 ImageSetController::ImageSetController()
 {
     cameraImageTimer = new QTimer(this);
     QObject::connect(cameraImageTimer, SIGNAL(timeout()), this, SLOT(getCameraImages()));
 }
 
+/**
+ * @brief ImageSetController::~ImageSetController
+ */
 ImageSetController::~ImageSetController(){
     stopRecording();
 }
 
+/**
+ * @brief ImageSetController::setNumberOfImages
+ * @param numberImgs
+ */
 void ImageSetController::setNumberOfImages(int numberImgs){
     this->numberImages = numberImgs;
 }
 
+/**
+ * @brief ImageSetController::setNumberRows
+ * @param numberRows
+ */
 void ImageSetController::setNumberRows(int numberRows){
     this->numberRows = numberRows;
 }
 
+/**
+ * @brief ImageSetController::setNumberColumns
+ * @param numberColumns
+ */
 void ImageSetController::setNumberColumns(int numberColumns){
     this->numberColumns = numberColumns;
 }
 
+/**
+ * @brief ImageSetController::setPatternType
+ * @param patternType
+ */
 void ImageSetController::setPatternType(std::string patternType){
     this->patternType = patternType;
 }
 
+/**
+ * @brief ImageSetController::setSquareSize
+ * @param squareSize
+ */
 void ImageSetController::setSquareSize(double squareSize){
     this->squareSize = squareSize;
 }
 
+/**
+ * @brief ImageSetController::isRunning
+ * @return
+ */
 bool ImageSetController::isRunning(){
     return this->running;
 }
 
+/**
+ * @brief ImageSetController::startRecording
+ * @return
+ */
 bool ImageSetController::startRecording(){
     try{
         cameras.initCameras();
@@ -50,6 +84,9 @@ bool ImageSetController::startRecording(){
     }
 }
 
+/**
+ * @brief ImageSetController::stopRecording
+ */
 void ImageSetController::stopRecording(){
     this->running = false;
     this->cameraImageTimer->stop();
@@ -58,6 +95,12 @@ void ImageSetController::stopRecording(){
     this->origRight.release();
 }
 
+/**
+ * @brief ImageSetController::getProcessedImages
+ * @param qImageLeft
+ * @param qImageRight
+ * @return
+ */
 bool ImageSetController::getProcessedImages(QImage& qImageLeft, QImage& qImageRight){
 
     this->imageLeft = this->origLeft.clone();
@@ -92,6 +135,9 @@ bool ImageSetController::getProcessedImages(QImage& qImageLeft, QImage& qImageRi
     }
 }
 
+/**
+ * @brief ImageSetController::getCameraImages
+ */
 void ImageSetController::getCameraImages(){
     std::cout << "called" << std::endl;
     try{
@@ -104,6 +150,9 @@ void ImageSetController::getCameraImages(){
     }
 }
 
+/**
+ * @brief ImageSetController::takeImage
+ */
 void ImageSetController::takeImage(){
     //create save path
     std::string savePathLeft =  imageSet.getPath() +
@@ -125,6 +174,10 @@ void ImageSetController::takeImage(){
     this->imageSet.incrementNumberRecordedImages();
 }
 
+/**
+ * @brief ImageSetController::createImageSet
+ * @return
+ */
 ImageSet ImageSetController::createImageSet(){
     //Create stereo directory for left and right camera where images are stored
     std::string path = DirectoryManager().createImageSetDirectory();
@@ -133,6 +186,9 @@ ImageSet ImageSetController::createImageSet(){
     return ImageSet(path);
 }
 
+/**
+ * @brief ImageSetController::saveInputInImageSet
+ */
 void ImageSetController::saveInputInImageSet(){
     //save ui entries in new image set settings
     this->imageSet.setNumberOfImages(this->numberImages);

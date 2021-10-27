@@ -1,6 +1,11 @@
 #include "stereocalibrationview.h"
 #include "ui_stereocalibrationview.h"
 
+/**
+ * @brief StereoCalibrationView::StereoCalibrationView erstellt die Benutzeroberfläsche
+ * und den displayTimer.
+ * @param parent
+ */
 StereoCalibrationView::StereoCalibrationView(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::StereoCalibrationView)
@@ -11,11 +16,19 @@ StereoCalibrationView::StereoCalibrationView(QWidget *parent) :
     connect(displayImageTimer, SIGNAL(timeout()), this, SLOT(displayImages()));
 }
 
+/**
+ * @brief StereoCalibrationView::~StereoCalibrationView ist der Destruktor.
+ */
 StereoCalibrationView::~StereoCalibrationView()
 {
     delete ui;
 }
 
+/**
+ * @brief StereoCalibrationView::on_searchFile_button_clicked öffnet den
+ * Dateiexplorer, für die Suche nach einem ImageSet. Führt anschließend
+ * das Laden des ImageSets aus.
+ */
 void StereoCalibrationView::on_searchFile_button_clicked()
 {
     if(!stereoCalibrationController.loadImageSet())
@@ -26,6 +39,11 @@ void StereoCalibrationView::on_searchFile_button_clicked()
     }
 }
 
+/**
+ * @brief StereoCalibrationView::on_startCalibration_button_clicked ruft
+ * start und stop der Stereokamerakalibrierung auf, abhängig davon
+ * ob Sie gerade läuft oder nicht.
+ */
 void StereoCalibrationView::on_startCalibration_button_clicked()
 {
     if(!displayImageTimer->isActive())
@@ -34,11 +52,21 @@ void StereoCalibrationView::on_startCalibration_button_clicked()
         stopCameraCalibration();
 }
 
+/**
+ * @brief StereoCalibrationView::on_displayImages_checkbox_toggled setzt,
+ * ob die Videos dargestellt werden sollen oder nicht.
+ * @param checked
+ */
 void StereoCalibrationView::on_displayImages_checkbox_toggled(bool checked)
 {
     this->displayImagesBool = checked;
 }
 
+/**
+ * @brief StereoCalibrationView::startCameraCalibration Führt den Start
+ * der Stereokamerakalibrierung durch indem es die UI sperrt und den
+ * Prozess startet.
+ */
 void StereoCalibrationView::startCameraCalibration(){
 
     lockReleaseUi(false);
@@ -50,6 +78,11 @@ void StereoCalibrationView::startCameraCalibration(){
         displayImageTimer->start();
 }
 
+/**
+ * @brief StereoCalibrationView::stopCameraCalibration führt den stop des
+ * Prozesses aus, indem es den Timer stoppt, die berechneten Infos lädt
+ * und die UI wieder freigibt.
+ */
 void StereoCalibrationView::stopCameraCalibration(){
     displayImageTimer->stop();
 
@@ -58,6 +91,11 @@ void StereoCalibrationView::stopCameraCalibration(){
     lockReleaseUi(true);
 }
 
+/**
+ * @brief StereoCalibrationView::lockReleaseUi gibt UI frei oder sperrt sie
+ * in Abhängigkeit des vorherigen Zustands.
+ * @param checked
+ */
 void StereoCalibrationView::lockReleaseUi(bool checked){
     if(checked)
         ui->startCalibration_button->setText(QString::fromStdString("Stereokalibrierung starten"));
@@ -69,6 +107,11 @@ void StereoCalibrationView::lockReleaseUi(bool checked){
     ui->searchFile_button->setEnabled(checked);
 }
 
+/**
+ * @brief StereoCalibrationView::loadCalibrationInfo fragt die
+ * Kalibrierungsinformationen vom stereoCalibrationController ab und stellt
+ * diese in der UI dar.
+ */
 void StereoCalibrationView::loadCalibrationInfo(){
     //load info from controller
     int board_width, board_hight, num_images;
@@ -86,6 +129,10 @@ void StereoCalibrationView::loadCalibrationInfo(){
     ui->reprojectionError_spinbox->setValue(stereoReprojectionError);
 }
 
+/**
+ * @brief StereoCalibrationView::displayImages stellt die Bilder in der UI dar,
+ * falls es neue gibt, die dargestellt werden können.
+ */
 void StereoCalibrationView::displayImages(){
     if(displayImagesBool && stereoCalibrationController.checkNewImageForDisplay()){
 

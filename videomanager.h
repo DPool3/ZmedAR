@@ -8,6 +8,10 @@
 #include "mainsettings.h"
 #include "directorymanager.h"
 
+/**
+ * @brief Die VideoManager class ermöglicht bei der kamerabasierten Verarbeitung,
+ * das Speichern der Videos mit 30fps oder auch das abspielen von Videos.
+ */
 class VideoManager
 {
 public:

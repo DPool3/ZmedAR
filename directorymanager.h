@@ -9,6 +9,12 @@
 
 #include "mainsettings.h"
 
+/**
+ * @brief Die DirectoryManager class prüft Existenz von Ordnern die erstellt werden sollen
+ * oder existieren sollten. Kann allgemein Ordner in einem bestimmten Pfad erstellen,
+ * aber auch speziell ImageSet-Ordner und Video-Ordner mit ihrer jeweiligen Struktur.
+ * Verwendet Datum und Uhrzeit für Ordnernamen.
+ */
 class DirectoryManager
 {
 public:

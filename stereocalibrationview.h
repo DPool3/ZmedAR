@@ -10,6 +10,11 @@ namespace Ui {
 class StereoCalibrationView;
 }
 
+/**
+ * @brief Die StereoCalibrationView class leitet Input von der GUI an den Controller weiter
+ * und darzustellende Bilder von dem Controller an die GUI. Die vom Controller berechneten Werte,
+ * wie der Reprojection Error, werden in der GUI dargestellt.
+ */
 class StereoCalibrationView : public QDialog
 {
     Q_OBJECT

@@ -14,6 +14,15 @@
 #include "imageprocessor.h"
 #include "vivetracking.h"
 
+/**
+ * @brief Die CameraBasedController class erlaubt die kamerabasierte Verarbeitung
+ * der Kameravideostreams. Die Prozesse werden in camerabasedview eingestellt und
+ * gestartet. Zu diesen Prozessen gehören die Einstellung von Sensortracking,
+ * anzeigen der Videos und Videospeichern. Diese Prozesse werden ausgeführt,
+ * wenn eien erfolgreiche Bildaufnahme gemacht wurde. Der Controller kann auch
+ * Aufnahmeeinstellungen der Kameras anpassen. Helligkeit, Belichtungszeit, Kontrast
+ * und Sättigung können beliebig angepasst werden.
+ */
 class CameraBasedController : public QObject
 {
     Q_OBJECT
@@ -39,12 +48,13 @@ public:
     void stopController();
     void startController();
 
-    void initTracker();
+    bool initTracker();
     void trackTrackers();
 
     bool useViveTracking = false;
     bool useCameraTracking = false;
     bool useVideoSaving = false;
+    bool trackingInitialized = false;
 
 private:
 
