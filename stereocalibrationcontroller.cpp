@@ -1,10 +1,18 @@
 #include "stereocalibrationcontroller.h"
 
+/**
+ * @brief StereoCalibrationController::StereoCalibrationController ist der Konstruktor.
+ */
 StereoCalibrationController::StereoCalibrationController()
 {
 
 }
 
+/**
+ * @brief StereoCalibrationController::loadImageSet lädt das gewählte ImageSet in ein
+ * ImageSet Objekt.
+ * @return true falls erfolgreich und false falls nicht erfolgreich.
+ */
 bool StereoCalibrationController::loadImageSet(){
     //Seach yaml file of image set
     imageSetPath = DialogManager().getPathFromFileSystem();
@@ -22,6 +30,11 @@ bool StereoCalibrationController::loadImageSet(){
     return true;
 }
 
+/**
+ * @brief StereoCalibrationController::startStereoCalibration startet einen Kalibrierungsprozess,
+ * losgelöst von den restlichen Threads.
+ * @return true falls erfolgreich gestartet und false, falls nicht.
+ */
 bool StereoCalibrationController::startStereoCalibration(){
     //load image set
     try{
@@ -44,6 +57,17 @@ bool StereoCalibrationController::startStereoCalibration(){
     return true;
 }
 
+/**
+ * @brief StereoCalibrationController::performSteroCalibration ruft loadImgPoints aus,
+ * um alle Corner Punkte aller Bilder zu erhalten. Anschließend werden zwei einfache
+ * Kalibrierungen der einzelnen Kameras durchgeführt, bevor stereoCalibrate
+ * mit allen zuvor erhaltenen Informationen durchgeführt wird.
+ * Auf diese Weise verbessert sich die Kalibrierung.
+ * Zum Schluss wird Rektifiziert, wodurch die Projektionsmatrizen berechnet werden
+ * und Entzerrt, wodurch weitere Matrizen für das Remapping erstellt werden.
+ * Abschließend wird ein Bild Remapped um das Ergebnis zu sehen.
+ * Alle berechneten Werte werden in dem ImageSet Objekt gespeichert.
+ */
 void StereoCalibrationController::performSteroCalibration(){
     // Creating vector to store vectors of 3D points for each checkerboard image
     std::vector< std::vector< cv::Point3f > > object_points;
@@ -141,6 +165,22 @@ void StereoCalibrationController::performSteroCalibration(){
     //src::https://learnopencv.com/making-a-low-cost-stereo-camera-using-opencv/
 }
 
+/**
+ * @brief StereoCalibrationController::loadImgPoints sucht mittels findChessBoardCorners
+ * alle Eckpunkte des Schachbrettmusters und verbessert diese Ergebnisse mittels
+ * cornerSubPix. Allen Punkten werden Ihre Koordinaten entsprechend der
+ * Square Size zugeordnet. Die verwendeten parameter sind aus dem ImageSet.
+ * @param board_width
+ * @param board_height
+ * @param num_imgs
+ * @param square_size
+ * @param path
+ * @param fileType
+ * @param patternType
+ * @param object_points
+ * @param imagePointsL
+ * @param imagePointsR
+ */
 void StereoCalibrationController::loadImgPoints(
         int board_width,
         int board_height,
@@ -243,18 +283,52 @@ void StereoCalibrationController::loadImgPoints(
     }
 }
 
+/**
+ * @brief StereoCalibrationController::findCircleGridSym ist für das finden von Kreiszentren
+ * in symmetrischen Pattern.
+ * @param img
+ * @param board_size
+ * @param corners
+ * @param found
+ */
 void StereoCalibrationController::findCircleGridSym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
     found = cv::findCirclesGrid(img, board_size, corners, cv::CALIB_CB_SYMMETRIC_GRID);
 }
 
+/**
+ * @brief StereoCalibrationController::findCircleGridAsym ist für das finden von Kreiszentren
+ * in asymmetrischen Pattern.
+ * @param img
+ * @param board_size
+ * @param corners
+ * @param found
+ */
 void StereoCalibrationController::findCircleGridAsym(cv::Mat img, cv::Size board_size, std::vector< cv::Point2f >& corners, bool & found){
     found = cv::findCirclesGrid(img, board_size, corners, cv::CALIB_CB_ASYMMETRIC_GRID);
 }
 
+/**
+ * @brief StereoCalibrationController::findChessBoardCorners ist fpr das finden von
+ * Eckpunkten in einem Schachbrettmuster.
+ * @param img
+ * @param board_size
+ * @param corners
+ * @param found
+ */
 void StereoCalibrationController::findChessBoardCorners(cv::Mat img, cv::Size board_size, std::vector<cv::Point2f> & corners, bool & found){
     found = cv::findChessboardCorners(img, board_size, corners);
 }
 
+/**
+ * @brief StereoCalibrationController::getCalibrationInfo gibt alle Werte an die
+ * Benutzeroberfläche zurück, die dargestellt werden sollen.
+ * @param board_width
+ * @param board_height
+ * @param num_imgs
+ * @param square_size
+ * @param patternType
+ * @param stereoReprojectionError
+ */
 void StereoCalibrationController::getCalibrationInfo(
         int& board_width,
         int& board_height,
@@ -270,6 +344,12 @@ void StereoCalibrationController::getCalibrationInfo(
     stereoReprojectionError = imageSet.getReprojectionError();
 }
 
+/**
+ * @brief StereoCalibrationController::getImagesForDisplay bereitet die Bilder
+ * für die Darstellung in der Benutzeroberfläche vor.
+ * @param qImageLeft
+ * @param qImageRight
+ */
 void StereoCalibrationController::getImagesForDisplay(QImage& qImageLeft, QImage& qImageRight){
     //access new image for display
     cv::resize(this->displayImageLeft, this->displayImageLeft, cv::Size(480, 320), 0, 0);
@@ -289,18 +369,39 @@ void StereoCalibrationController::getImagesForDisplay(QImage& qImageLeft, QImage
     newImagesForDisplay = false;
 }
 
+/**
+ * @brief StereoCalibrationController::getImageSetPath gibt den Pfad
+ * des ImageSets zurück.
+ * @return Pfad des ImageSets.
+ */
 QString StereoCalibrationController::getImageSetPath(){
     return this->imageSetPath;
 }
 
+/**
+ * @brief StereoCalibrationController::checkNewImageForDisplay prüft ob bereits
+ * neue Bilder zum Darstellen berechnet wurden.
+ * @return true falls neue Bilder für die Darstellung vorhanden sind, false falls nicht.
+ */
 bool StereoCalibrationController::checkNewImageForDisplay(){
     return this->newImagesForDisplay;
 }
 
+/**
+ * @brief StereoCalibrationController::checkCalibrationRunning prüft, ob die
+ * Kalibrierung noch läuft.
+ * @return true falls die Kalibrierung noch läuft.
+ */
 bool StereoCalibrationController::checkCalibrationRunning(){
     return this->calibrationRunning;
 }
 
+/**
+ * @brief StereoCalibrationController::splitFileName teilt einen String
+ * an der Stelle des gewählten Symbols.
+ * @param str
+ * @return der String, aber ohne das Symbol und alles was dahinter ist.
+ */
 std::string StereoCalibrationController::splitFileName(const std::string& str){
     std::size_t found = str.find_last_of("/\\");
     return str.substr(0,found);

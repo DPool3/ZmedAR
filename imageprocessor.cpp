@@ -1,5 +1,9 @@
 #include "imageprocessor.h"
 
+/**
+ * @brief ImageProcessor::ImageProcessor lädt das ImageSet und weitere Matrizen,
+ * die recht lange brauchen direkt zu Beginn.
+ */
 ImageProcessor::ImageProcessor()
 {
     imageSet = ImageSet(selectedImageSet);
@@ -9,6 +13,13 @@ ImageProcessor::ImageProcessor()
     rightStereoMap2 = imageSet.getRightStereoMap2();
 }
 
+/**
+ * @brief ImageProcessor::ImageProcessor lädt das ImageSet , weitere Matrizen
+ * und speichert die Methoden für das Kameratracking direkt zu Beginn.
+ * @param detector
+ * @param descriptor
+ * @param matcher
+ */
 ImageProcessor::ImageProcessor(int detector, int descriptor, int matcher)
 {
     this->selectedFeatureDetector = detector;
@@ -21,6 +32,12 @@ ImageProcessor::ImageProcessor(int detector, int descriptor, int matcher)
     rightStereoMap2 = imageSet.getRightStereoMap2();
 }
 
+/**
+ * @brief ImageProcessor::prepImageForDisplay verarbeitet die cv::Mat
+ * Bilder zu QImages, die später in Qt dargestellt werden können.
+ * @param image
+ * @return das verarbeitete Bild.
+ */
 QImage ImageProcessor::prepImageForDisplay(cv::Mat& image)
 {
     QImage returnImage;
@@ -38,6 +55,14 @@ QImage ImageProcessor::prepImageForDisplay(cv::Mat& image)
     return returnImage;
 }
 
+/**
+ * @brief ImageProcessor::generateAnaglyphImage generiert das Anaglyph 3D Bild,
+ * indem es die Channels der Beiden Bilder spaltet und zu einem Bild zusammen
+ * setzt. Dieses Bild wird zu einem QImage verarbeitet.
+ * @param imageLeft
+ * @param imageRight
+ * @return Anaglyph 3D Bild als QImage.
+ */
 QImage ImageProcessor::generateAnaglyphImage(cv::Mat imageLeft, cv::Mat imageRight)
 {
     //remap images
@@ -67,6 +92,11 @@ QImage ImageProcessor::generateAnaglyphImage(cv::Mat imageLeft, cv::Mat imageRig
     return anaglyph3DQImage;
 }
 
+/**
+ * @brief ImageProcessor::cannyEdgeOnImagePair erzeugt ein CannyEdgeBildPaar.
+ * @param imageLeft
+ * @param imageRight
+ */
 void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRight)
 {
     cv::Mat imgLeftGray, imgRightGray;
@@ -96,6 +126,12 @@ void ImageProcessor::cannyEdgeOnImagePair(cv::Mat & imageLeft, cv::Mat &imageRig
     imageRight = detectedEdgesRight;
 }
 
+/**
+ * @brief ImageProcessor::stereoVisualOdometry führt die stereovisuelle Odometrie
+ * für ein Bildpaar durch.
+ * @param currImageLeft
+ * @param currImageRight
+ */
 void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currImageRight)
 {
     QElapsedTimer totalImageMatchingTimer;
@@ -334,6 +370,15 @@ void ImageProcessor::stereoVisualOdometry(cv::Mat currImageLeft, cv::Mat currIma
     std::cout << "Number of calculated wordl coordinates (right): " << ransacCounterRight << "." << std::endl;
 }
 
+/**
+ * @brief ImageProcessor::detectFeaturesParallel ruft eine FeatureDetection Methode
+ * in zwei threads auf.
+ * @param remappedL
+ * @param remappedR
+ * @param keyPointVectorLeft
+ * @param keyPointVectorRight
+ * @param selectedFeatureDetector
+ */
 void ImageProcessor::detectFeaturesParallel(cv::Mat remappedL, cv::Mat remappedR, std::vector<cv::KeyPoint> &keyPointVectorLeft, std::vector<cv::KeyPoint> &keyPointVectorRight, int selectedFeatureDetector){
     //error handling in general
 
@@ -353,6 +398,17 @@ void ImageProcessor::detectFeaturesParallel(cv::Mat remappedL, cv::Mat remappedR
     std::cout << "RightKeyPointVector: " << keyPointVectorRight.size() << std::endl;
 }
 
+/**
+ * @brief ImageProcessor::describeFeaturesParallel ruft eine FeatureDescription Methode
+ * in zwei Threads auf.
+ * @param remappedL
+ * @param remappedR
+ * @param descriptorLeft
+ * @param descriptorRight
+ * @param keyPointVectorLeft
+ * @param keyPointVectorRight
+ * @param selectedFeatureDescription
+ */
 void ImageProcessor::describeFeaturesParallel(cv::Mat remappedL, cv::Mat remappedR, cv::Mat &descriptorLeft, cv::Mat &descriptorRight, std::vector<cv::KeyPoint> keyPointVectorLeft, std::vector<cv::KeyPoint> keyPointVectorRight, int selectedFeatureDescription)
 {
     //error handling in general
@@ -369,6 +425,20 @@ void ImageProcessor::describeFeaturesParallel(cv::Mat remappedL, cv::Mat remappe
     descriptionTimeAcc = descriptionTimeAcc + descriptionTime;
 }
 
+/**
+ * @brief ImageProcessor::calc3DPointsOfInliers verwendet die vorherigen und aktuellen
+ * Matches um die Essenzielle Matrix mittels findEssentialMat zu berechnen. Diese
+ * wird verwendet um im nächsten Schritt recoverPose um die 3D Punkte in homogenen
+ * Koordinaten zu erhalten und gleichzeitig die outlier zu filtern. Diese Punkte
+ * werden in kartesische Koordinaten überführt, bevor erneut die inlier mittels
+ * mask herausgesucht werden.
+ * @param previousMatches
+ * @param currentMatches
+ * @param camMat
+ * @param prevMatchesIn
+ * @param currMatchesIn
+ * @param points3DInliers
+ */
 void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMatches,
                                            std::vector<cv::KeyPoint> currentMatches,
                                            cv::Mat camMat,
@@ -419,6 +489,12 @@ void ImageProcessor::calc3DPointsOfInliers(std::vector<cv::KeyPoint> previousMat
 }
 
 
+/**
+ * @brief ImageProcessor::calcWorldCoords berechnet die Weltkoordinate
+ * aus dem Rotationsvektor und Translationsvektor.
+ * @param rvec
+ * @param tvec
+ */
 void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec)
 {
     cv::Mat R = cv::Mat(3, 3, CV_64F, double(0));;
@@ -427,6 +503,13 @@ void ImageProcessor::calcWorldCoords(cv::Mat rvec, cv::Mat& tvec)
     tvec = -R * tvec;
 }
 
+/**
+ * @brief ImageProcessor::featureDetectionMethod enthält ein Switch Case, mit allen
+ * Feature Detection Methoden.
+ * @param remapped
+ * @param selectedFeatureDetection
+ * @return detectierte Keypoints in einem Vektor.
+ */
 std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remapped, int selectedFeatureDetection)
 {
     std::vector<cv::KeyPoint> keyPointVector;
@@ -484,6 +567,14 @@ std::vector<cv::KeyPoint> ImageProcessor::featureDetectionMethod(cv::Mat remappe
     return keyPointVector;
 }
 
+/**
+ * @brief ImageProcessor::featureDescriptionMethod enthält ein Switch Case, mit allen
+ * Feature Description Methoden.
+ * @param remapped
+ * @param keyPointVector
+ * @param selectedFeatureDescription
+ * @return den Deskriptor für die Keypoints.
+ */
 cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<cv::KeyPoint> keyPointVector, int selectedFeatureDescription)
 {
     //1.2 Feature description for both images
@@ -543,6 +634,15 @@ cv::Mat ImageProcessor::featureDescriptionMethod(cv::Mat remapped, std::vector<c
     return descriptor;
 }
 
+/**
+ * @brief ImageProcessor::featureMatchingMethod enthält alle Matching Methoden
+ * inklusive Auswahl zwischen CrossCheck, NoCheck und DLowe.
+ * @param descriptorOne
+ * @param descriptorTwo
+ * @param selectedFeatureDescription
+ * @param SelectedFeatureMatching
+ * @return Vektor von Matches.
+ */
 std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptorOne, cv::Mat descriptorTwo, int selectedFeatureDescription ,int SelectedFeatureMatching)
 {
     std::vector<std::vector<cv::DMatch>> matches;
@@ -645,6 +745,11 @@ std::vector<cv::DMatch> ImageProcessor::featureMatchingMethod(cv::Mat descriptor
     return goodMatches;
 }
 
+/**
+ * @brief ImageProcessor::createNewTrackingFile erstellt eine neue Trackingdatei
+ * unter dem angegebenen Pfad.
+ * !WICHTIG! Dieser Pfad muss bei Wechsel des Rechners angepasst werden.
+ */
 void ImageProcessor::createNewTrackingFile()
 {
     std::string fileName = "VO_" + DirectoryManager().getCurrentDateAsString();
@@ -652,12 +757,21 @@ void ImageProcessor::createNewTrackingFile()
     this->trackingFile.open("/home/daniel/ZAR/trackingFiles/" + fileName + fileType, std::ios_base::app);
 }
 
+/**
+ * @brief ImageProcessor::closeTrackingFile schließt die Trackingdatei.
+ */
 void ImageProcessor::closeTrackingFile()
 {
     if(trackingFile.is_open())
         trackingFile.close();
 }
 
+/**
+ * @brief ImageProcessor::addLineToFile fügt eine Zweile mit Translations- und Rotationsvektor
+ * der Trackingdatei hinzu.
+ * @param tVecLeft
+ * @param tVecRight
+ */
 void ImageProcessor::addLineToFile(cv::Mat tVecLeft, cv::Mat tVecRight)
 {
     this->trackingFile << "TL, " << std::setprecision(3) << tVecLeft.at<double>(0,0) * 0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,1) * -0.001 << ", " << std::setprecision(3) << tVecLeft.at<double>(0,2) * 0.001 <<

@@ -1,6 +1,9 @@
 #include "vivetracking.h"
 
-// Destructor for the LighthouseTracking object
+/**
+ * @brief ViveTracking::~ViveTracking ist der Destruktor für das
+ * LighthouseTracking Objekt
+ */
 ViveTracking::~ViveTracking()
 {
     if (vr_pointer != NULL)
@@ -13,7 +16,11 @@ ViveTracking::~ViveTracking()
     this->trackingFile.close();
 }
 
-// Constructor for the LighthouseTracking object
+/**
+ * @brief ViveTracking::ViveTracking ist der Konstruktor fpr das
+ * LighthouseTracking Objekt.
+ * @param f
+ */
 ViveTracking::ViveTracking(InitFlags f)
 {
     flags = f;
@@ -28,31 +35,22 @@ ViveTracking::ViveTracking(InitFlags f)
     // Definition of the init error
     EVRInitError eError = VRInitError_None;
 
-    /*
-    VR_Init (
-        arg1: Pointer to EVRInitError type (enum defined in openvr.h)
-        arg2: Must be of type EVRApplicationType
-
-            The type of VR Applicaion.  This example uses the SteamVR instance that is already running.
-            Because of this, the init function will fail if SteamVR is not already running.
-
-            Other EVRApplicationTypes include:
-                * VRApplication_Scene - "A 3D application that will be drawing an environment.""
-                * VRApplication_Overlay - "An application that only interacts with overlays or the dashboard.""
-                * VRApplication_Utility
-    */
-
     vr_pointer = VR_Init(&eError, VRApplication_Background);
 
     // If the init failed because of an error
     if (eError != VRInitError_None)
     {
         vr_pointer = NULL;
-        printf("Unable to init VR runtime.\n");
-        exit(EXIT_FAILURE);
+        std::string errMsg = "Die VR runtime konnte nicht initialisiert werden.\n Bitte starten Sie Steam und SteamVR und schließen Sie\n VR-Headset, Lighthouses, Dongles und Tracker an.";
+        printf("Die VR Laufzeitumgebung konnte nicht initialisiert werden.\n Prüfen Sie, ob Steam und Steam VR gestartet sind.");
+        throw std::runtime_error(errMsg);
     }
 }
 
+/**
+ * @brief ViveTracking::RunProcedure startet einenTrackingdurchlauf.
+ * @return true falls erfolgreich gestartet, false falls nicht.
+ */
 bool ViveTracking::RunProcedure()
 {
     // Define a VREvent
@@ -287,6 +285,10 @@ void ViveTracking::ParseTrackingFrame()
      addLineToFile(coords + rot);
 }
 
+/**
+ * @brief ViveTracking::TrackerCoords hier werden alle verfügbaren Sensoren
+ * ein mal durchlaufen und die Trackinginformationen herausgelesen.
+ */
 void ViveTracking::TrackerCoords()
 {
     TrackedDevicePose_t trackedDevicePose;
@@ -338,12 +340,21 @@ char* ViveTracking::getPoseXYZString(TrackedDevicePose_t pose, int hand)
     return cB;
 }
 
+/**
+ * @brief ViveTracking::createNewTrackingFile erstellt eine Datei mit aktuellem Datum
+ * und Uhrzeit im Namen unter dem angegebenen Pfad.
+ * !WICHTIG! Dieser Pfad muss unter Umständen angepasst werden.
+ */
 void ViveTracking::createNewTrackingFile(){
     std::string fileName = DirectoryManager().getCurrentDateAsString();
     std::string fileType = ".txt";
     this->trackingFile.open("/home/daniel/ZAR/trackingFiles/" + fileName + fileType, std::ios_base::app);
 }
 
+/**
+ * @brief ViveTracking::addLineToFile fügt der Trackingdatei eine Zeile hinzu.
+ * @param lineText
+ */
 void ViveTracking::addLineToFile(std::string lineText){
     this->trackingFile << lineText << std::endl;
 }

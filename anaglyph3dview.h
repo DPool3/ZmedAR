@@ -7,9 +7,14 @@
 #include "anaglyph3dcontroller.h"
 
 namespace Ui {
+
 class Anaglyph3DView;
 }
 
+/**
+ * @brief Die Anaglyph3DView class leitet Input in der GUI an den Controller und
+ * darzustellende Bilder des Controllers an die GUI weiter.
+ */
 class Anaglyph3DView : public QDialog
 {
     Q_OBJECT

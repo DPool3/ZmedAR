@@ -7,6 +7,10 @@
 #include "videomanager.h"
 #include "imageprocessor.h"
 
+/**
+ * @brief Die Anaglyph3DController class stellt ein Anaglyph 3D Video der gewählten Stereovideosequenz dar.
+ * Dieser Prozess wird in anaglyph3dView gestartet.
+ */
 class Anaglyph3DController
 {
 public:

@@ -13,6 +13,11 @@ namespace Ui {
 class MainWindow;
 }
 
+/**
+ * @brief Die MainWindow class zeigt alle auswählbaren Optionen des Programms.
+ * videobasierte Verarbeitung, kamerabasierte Verarbeitung, Erstellen von image sets,
+ * Durchführung einer Stereokamerakalibrierung und Darstellung eines Anaglyph 3D Videos.
+ */
 class MainWindow : public QMainWindow
 {
     Q_OBJECT

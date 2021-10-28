@@ -1,16 +1,27 @@
 #include "directorymanager.h"
 
+/**
+ * @brief DirectoryManager::DirectoryManager ist der Konstruktor
+ */
 DirectoryManager::DirectoryManager()
 {
 
 }
 
 //Init
+/**
+ * @brief DirectoryManager::initDirectoryHierarchy prüft ob die Ordner existieren,
+ * falls nicht, werden diese erstellt.
+ */
 void DirectoryManager::initDirectoryHierarchy(){
     MainSettings settings;
     //check for path of basic directories. If the don't exist, create them
     if(!pathOrFileExists(settings.getRootPath())){
         createDirectory(settings.getRootPath());
+    }
+
+    if(!pathOrFileExists(settings.getTrackingFilePath())){
+        createDirectory(settings.getTrackingFilePath());
     }
 
     if(!pathOrFileExists(settings.getImageSetsPath())){
@@ -23,12 +34,23 @@ void DirectoryManager::initDirectoryHierarchy(){
 }
 
 //Create Methods
+/**
+ * @brief DirectoryManager::createDirectory erstellt einen Ordner mittels
+ * angegebenem Pfad.
+ * @param path
+ */
 void DirectoryManager::createDirectory(std::string path){
     std::string command = "mkdir " + path;
     system(command.c_str());
     return;
 }
 
+/**
+ * @brief DirectoryManager::createStereoDirectory erstellt einen Ordner
+ * und seine zwei Unterordner "Links" und "Rechts" unter einem
+ * angegebenen Pfad.
+ * @param path
+ */
 void DirectoryManager::createStereoDirectory(std::string path){
     //create current date and time directory
     createDirectory(path);
@@ -40,6 +62,12 @@ void DirectoryManager::createStereoDirectory(std::string path){
     system(commandRight.c_str());
 }
 
+/**
+ * @brief DirectoryManager::createVideoDirectory erstellt einen Ordner
+ * speziell für die beiden Videosequenzen.
+ * @param dirNameAddition
+ * @return
+ */
 std::string DirectoryManager::createVideoDirectory(std::string dirNameAddition){
     std::string dateAndTime = getCurrentDateAsString();
     std::string videoPath = MainSettings().getVideosPath();
@@ -47,6 +75,11 @@ std::string DirectoryManager::createVideoDirectory(std::string dirNameAddition){
     return videoPath + "/" + dateAndTime + dirNameAddition;
 }
 
+/**
+ * @brief DirectoryManager::createImageSetDirectory erstellt einen Ordner
+ * speziell für das ImageSet
+ * @return
+ */
 std::string DirectoryManager::createImageSetDirectory(){
     std::string dateAndTime = getCurrentDateAsString();
     std::string imageSetsPath = MainSettings().getImageSetsPath();
@@ -55,6 +88,12 @@ std::string DirectoryManager::createImageSetDirectory(){
 }
 
 //Check Methods
+/**
+ * @brief DirectoryManager::pathOrFileExists prüft die Existenz des Ordners
+ * oder der Datei im Pfad.
+ * @param path
+ * @return true falls alles okay ist. Sonst Fehlermeldung.
+ */
 bool DirectoryManager::pathOrFileExists(std::string path){
     struct stat buffer;
 
@@ -69,6 +108,11 @@ bool DirectoryManager::pathOrFileExists(std::string path){
 }
 
 //Time and Date
+/**
+ * @brief DirectoryManager::getCurrentDateAsString erstellt einen Strin mit
+ * Datum und Uhrzeit, der für die Benennung der Ordner verwendet wird.
+ * @return String der Datum und Uhrzeit enthält.
+ */
 std::string DirectoryManager::getCurrentDateAsString(){
     char some_buffer[64];
     std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();

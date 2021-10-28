@@ -10,6 +10,11 @@ namespace Ui {
 class FileSystemDialog;
 }
 
+/**
+ * @brief Die FileSystemDialog class erstellt einen kleinen Dateiexplorer,
+ * in dem links Ordnerstruktur undrechts die Dateistruktur innerhalb des gewählten Ordners
+ * angezeigt wird. Durch auswählen und bestätigen einer Datei, wird der Pfad zurück gegeben.
+ */
 class FileSystemDialog : public QDialog
 {
     Q_OBJECT

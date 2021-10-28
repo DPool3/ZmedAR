@@ -7,6 +7,10 @@ namespace Ui {
 class ErrorDialog;
 }
 
+/**
+ * @brief Die ErrorDialog class erstellt ein Dialogfenster und überschreibt
+ * den text des labels mit der angegebenen Fehlermeldung.
+ */
 class ErrorDialog : public QDialog
 {
     Q_OBJECT

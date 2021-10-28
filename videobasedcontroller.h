@@ -9,6 +9,11 @@
 #include "videomanager.h"
 #include "dialogmanager.h"
 
+/**
+ * @brief Die VideoBasedController class ermöglicht die Verarbeitung von zuvor
+ * aufgezeichneten Stereovideosequenzen. Auf diese Weise kann das Kameratracking,
+ * ohne berücksichtigung von Echtzeitfähigkeit Bild für Bild durchgeführt werden.
+ */
 class VideoBasedController
 {
 public:
@@ -33,7 +38,6 @@ private:
 
     int playFps = 0;
 
-    void getVideoFrames();
     void stop();
 };
 

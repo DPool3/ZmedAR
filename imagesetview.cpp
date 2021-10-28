@@ -1,6 +1,10 @@
 #include "imagesetview.h"
 #include "ui_imagesetview.h"
 
+/**
+ * @brief ImageSetView::ImageSetView
+ * @param parent
+ */
 ImageSetView::ImageSetView(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ImageSetView)
@@ -11,11 +15,18 @@ ImageSetView::ImageSetView(QWidget *parent) :
     connect(displayImagesTimer, SIGNAL(timeout()), this, SLOT(displayImages()));
 }
 
+/**
+ * @brief ImageSetView::~ImageSetView
+ */
 ImageSetView::~ImageSetView()
 {
     delete ui;
 }
 
+/**
+ * @brief ImageSetView::lockReleaseUi
+ * @param checked
+ */
 void ImageSetView::lockReleaseUi(bool checked)
 {
     ui->showVideosCheckBox->setEnabled(checked);
@@ -28,16 +39,28 @@ void ImageSetView::lockReleaseUi(bool checked)
     ui->circle_radioButton->setEnabled(checked);
     ui->asymCircles_radioButton->setEnabled(checked);
 }
+
+/**
+ * @brief ImageSetView::on_showVideosCheckBox_toggled
+ * @param checked
+ */
 void ImageSetView::on_showVideosCheckBox_toggled(bool checked)
 {
     this->showVideo = checked;
 }
 
+/**
+ * @brief ImageSetView::on_setImageSet_checkBox_toggled
+ * @param checked
+ */
 void ImageSetView::on_setImageSet_checkBox_toggled(bool checked)
 {
     //set standard image set for easier use in stereo camera calibration
 }
 
+/**
+ * @brief ImageSetView::on_imageSetRecord_button_clicked
+ */
 void ImageSetView::on_imageSetRecord_button_clicked()
 {
     if(this->showVideo && !this->displayImagesTimer->isActive()){

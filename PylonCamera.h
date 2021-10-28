@@ -9,6 +9,10 @@
 using namespace Pylon;
 using namespace std;
 
+/**
+ * @brief In der pylonCamera class werden die Kameras initialisiert,
+ * alle Kameraeinstellungen angepasst, Bilder ausgelesen und in cv::Mat Objekte konvertiert.
+ */
 class pylonCamera
 {
 public:
@@ -25,7 +29,6 @@ public:
 
     double getAverageExecutionTime();
     double getAverageFormatTime();
-    double getAverageSaveTime();
 
     void setExposure(float);
     void setBrightness(float);
@@ -66,7 +69,6 @@ private:
     int executionCounter = 0;
     int formatTime = 0;
     int formatCounter = 0;
-    int saveTime = 0;
     int saveCounter = 0;
 };
 

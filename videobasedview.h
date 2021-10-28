@@ -12,6 +12,10 @@ namespace Ui {
 class VideoBasedView;
 }
 
+/**
+ * @brief Die VideoBasedView class leitet Input von der GUI an den Controller
+ * weiter und darzustellende Bilder von dem Controller an de GUI.
+ */
 class VideoBasedView : public QDialog
 {
     Q_OBJECT

@@ -9,6 +9,15 @@
 
 #include "mainsettings.h"
 
+/**
+ * @brief Die ImageSet class Ist eine Klasse, die alle Informationen über das
+ * gerade erstellte Image Set enthält. Alle Informationen werden in eine
+ * StereoCalibrationSettings.yml Datei geschrieben. Diese Datei enthält alle
+ * für die Kalibrierung und Bildverarbeitung notwendigen Informationen.
+ * Weitere Informationen, die durch die Kalibrierung erzeugt werden,
+ * werden ebenfalls in dem Objekt und dann in der Datei gespeichert.
+ * Ausschließlich die imageset Klasse schreibt Informationen in die Dateien.
+ */
 class ImageSet
 {
 public:

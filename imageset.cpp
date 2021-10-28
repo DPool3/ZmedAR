@@ -1,5 +1,14 @@
 #include "imageset.h"
 
+/**
+ * @brief ImageSet::ImageSet ist der Konstruktor des ImageSets.
+ * Dieser wird nur mit Pfad erstellt. Nach Aufruf wird der Pfad für
+ * das ImageSet zusammengebaut. Anschließend wird geprüft, ob diese
+ * Datei unter dem Pfad schon existiert. Ist das nicht der Fall, werden
+ * default werte im ImageSet Objekt gesetzt andernfalls,
+ * werden alle notwendigen Zeilen aus der Datei in das ImageSet Objekt gelesen.
+ * @param path
+ */
 ImageSet::ImageSet(std::string path)
 {
     //Save path for write
@@ -305,9 +314,11 @@ cv::Mat ImageSet::getRightStereoMap2(){
     return Right_Stereo_Map2;
 }
 
+/**
+ * @brief ImageSet::updateSettings updated die Datei bei jeder Änderung
+ * der Einträge des Objekts.
+ */
 void ImageSet::updateSettings(){
-    //
-
     //Create file path for settings file
     std::string settingsPath = path + "/StereoCalibrationSettings.yml";
 
@@ -340,6 +351,13 @@ void ImageSet::updateSettings(){
     fsWrite << "Right_Stereo_Map2" << this->Right_Stereo_Map2;
 }
 
+/**
+ * @brief ImageSet::setDefault setzt im ImageSet die Default werte,
+ * falls dieses Objekt gerade neu erstellt wurde und es zuvor
+ * keine Date unter dem gleichen Pfad gab (wie im Konstruktor getestet).
+ * Anschließend wird der Pfad zusammengebaut unter dem die yml Datei
+ * erstellt wird. Diese wird mit allen notwendigen Einträgen gefüllt.
+ */
 void ImageSet::setDefault(){
     //set integer and float to default 0
     this->numberOfImages = 0;
